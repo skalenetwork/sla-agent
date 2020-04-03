@@ -198,5 +198,4 @@ class Monitor(base_agent.BaseAgent):
 
 
 if __name__ == '__main__':
-
     run_agent(sys.argv, Monitor)

@@ -81,11 +81,3 @@ def find_block_for_tx_stamp(skale, tx_stamp, lo=0, hi=None):
 
 def check_node_id(skale, node_id):
     return node_id in skale.nodes_data.get_active_node_ids()
-
-
-def run_multy_bounty(first_id, count):
-
-    skale = init_skale(0)
-    for node_id in range(first_id, first_id+count):
-        bounty_agent = agent_class(skale, node_id)
-        bounty_agent.run()
