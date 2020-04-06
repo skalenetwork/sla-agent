@@ -22,7 +22,7 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.7
-    - name: Install docker and libs
+    - name: Install docker-compose and libs
       run: |
         sudo curl -L "https://github.com/docker/compose/releases/download/1.23.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         sudo chmod +x /usr/local/bin/docker-compose
@@ -31,7 +31,8 @@ jobs:
     - name: Install python dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r tests/requirements.txt
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
         pip install codecov pytest-cov
     - name: Lint with flake8
       run: |
@@ -42,7 +43,7 @@ jobs:
     - name: Run tests
       run: |
         export PYTHONPATH=$PYTHONPATH:.
-        python tests/integration/prepare_validator.py
+        python tests/prepare_validator.py
         ENV=DEV py.test -v -s --cov=./ tests/ --cov-report term-missing
     - name: Codecov
       run: |
