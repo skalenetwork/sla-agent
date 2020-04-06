@@ -18,7 +18,7 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from peewee import BooleanField, CharField, CompositeKey, DateTimeField, IntegerField, Model, \
+from peewee import BooleanField, CharField, DateTimeField, IntegerField, Model, \
     MySQLDatabase, fn
 
 from configs.db import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
@@ -47,20 +47,6 @@ class Report(BaseModel):
     stamp = DateTimeField()
 
 
-class BountyEvent(BaseModel):
-    my_id = IntegerField()
-    tx_dt = DateTimeField()
-    tx_hash = CharField()
-    block_number = IntegerField()
-    bounty = CharField()
-    downtime = IntegerField()
-    latency = IntegerField()
-    gas_used = IntegerField()
-
-    class Meta:
-        db_table = 'bounty_event'
-
-
 class ReportEvent(BaseModel):
     my_id = IntegerField()
     target_id = IntegerField()
@@ -71,19 +57,7 @@ class ReportEvent(BaseModel):
     gas_used = IntegerField()
 
     class Meta:
-        db_table = 'report_event'
-
-
-class BountyStats(BaseModel):
-    tx_hash = CharField()
-    eth_balance_before = CharField()
-    eth_balance = CharField()
-    skl_balance_before = CharField()
-    skl_balance = CharField()
-
-    class Meta:
-        db_table = 'bounty_stats'
-        primary_key = CompositeKey('tx_hash')
+        table_name = 'report_event'
 
 
 @dbhandle.connection_context()
@@ -94,21 +68,6 @@ def save_metrics_to_db(my_id, target_id, is_offline, latency):
                     is_offline=is_offline,
                     latency=latency)
     report.save()
-
-
-@dbhandle.connection_context()
-def save_bounty_event(tx_dt, tx_hash, block_number, my_id, bounty, downtime, latency, gas_used):
-    """ Save bounty events data to database"""
-    data = BountyEvent(my_id=my_id,
-                       tx_dt=tx_dt,
-                       bounty=bounty,
-                       downtime=downtime,
-                       latency=latency,
-                       gas_used=gas_used,
-                       tx_hash=tx_hash,
-                       block_number=block_number)
-
-    data.save()
 
 
 @dbhandle.connection_context()
@@ -123,23 +82,6 @@ def save_report_event(tx_dt, tx_hash, my_id, target_id, downtime, latency, gas_u
                        tx_hash=tx_hash)
 
     data.save()
-
-
-@dbhandle.connection_context()
-def save_bounty_stats(
-        tx_hash,
-        eth_bal_before,
-        skl_bal_before,
-        eth_bal,
-        skl_bal):
-    """ Save bounty receipt data to database"""
-    data = BountyStats(tx_hash=tx_hash,
-                       eth_balance_before=eth_bal_before,
-                       skl_balance_before=skl_bal_before,
-                       eth_balance=eth_bal,
-                       skl_balance=skl_bal
-                       )
-    data.save(force_insert=True)
 
 
 @dbhandle.connection_context()
@@ -177,21 +119,5 @@ def clear_all_reports():
 
 
 @dbhandle.connection_context()
-def clear_all_bounty_receipts():
-    nrows = BountyStats.delete().execute()
-    print(f'{nrows} records deleted')
-
-
-@dbhandle.connection_context()
-def get_count_of_bounty_receipt_records():
-    return BountyStats.select().count()
-
-
-@dbhandle.connection_context()
 def get_count_of_report_records():
     return Report.select().count()
-
-
-@dbhandle.connection_context()
-def get_bounty_max_block_number():
-    return BountyEvent.select(fn.MAX(BountyEvent.block_number)).scalar()
