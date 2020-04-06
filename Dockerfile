@@ -14,6 +14,7 @@ WORKDIR /usr/src/sla
 COPY . .
 
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements-dev.txt
 
 ENV PYTHONPATH="/usr/src/sla"
 CMD [ "python3", "sla_agent.py" ]
