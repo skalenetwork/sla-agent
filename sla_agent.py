@@ -41,7 +41,11 @@ class Monitor(base_agent.BaseAgent):
 
     def __init__(self, skale, node_id=None):
         super().__init__(skale, node_id)
-        self.nodes = skale.monitors_data.get_checked_array(node_id)
+        self.nodes = []
+        try:
+            self.nodes = skale.monitors_data.get_checked_array(self.id)
+        except Exception as err:
+            self.logger.exception(f'Cannot get get_checked_array :{err}')
         self.reward_period = self.skale.constants_holder.get_reward_period()
 
     def validate_nodes(self, skale, nodes):
