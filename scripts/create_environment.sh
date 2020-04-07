@@ -10,6 +10,7 @@ set -e
 export DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # Run mysql docker container
+docker rm -f skale-mysql || true
 docker run -d --restart=always --name skale-mysql -e MYSQL_ROOT_PASSWORD=$DB_ROOT_PASSWORD -e MYSQL_DATABASE=db_skale -e MYSQL_USER=$DB_USER -e MYSQL_PASSWORD=$DB_PASSWORD -v ${DIR}/init.sql:/docker-entrypoint-initdb.d/init.sql -p ${DB_PORT}:3306  mysql/mysql-server:5.7
 
 # Prepare directories
