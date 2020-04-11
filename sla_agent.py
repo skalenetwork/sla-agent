@@ -22,7 +22,7 @@ SLA agent runs on every node of SKALE network, periodically gets a list of nodes
 from SC, checks its health metrics and sends transactions with average metrics to CS when it's time
 to send it
 """
-from skale.utils.web3_utils import TransactionFailedError
+from tools.exceptions import TxCallFailedException
 import sys
 import threading
 import time
@@ -68,7 +68,7 @@ class Monitor(base_agent.BaseAgent):
                     self.logger.error(f'Couldn\'t save metrics to database - '
                                       f'is mysql container running? {err}')
             else:
-                self.logger.error(f'Couldn\'t ping 8.8.8.8 - skipping monitoring node {node["id"]}')
+                self.logger.error(f'No ping from {GOOD_IP} - skipping monitoring node {node["id"]}')
 
     def get_reported_nodes(self, nodes) -> list:
         """Returns a list of nodes to be reported"""
@@ -113,43 +113,36 @@ class Monitor(base_agent.BaseAgent):
             except Exception as err:
                 self.logger.error(f'Failed getting month metrics from db: {err}')
                 self.logger.info(f'Report on node id = {node["id"]} cannot be sent!')
-            # res_tx = self.skale.manager.send_verdict(self.id, node['id'], metrics['downtime'],
-            #                                          metrics['latency'], wait_for=True)
-            # tx_hash = res_tx.receipt['transactionHash'].hex()
-            # print(f'hash = {tx_hash}')
-            # if res_tx.receipt['status'] == 1:
-            #     self.logger.info('The report was successfully sent')
 
         if len(ids) == len(downtimes) == len(latencies) and len(ids) != 0:  # and False:
-
+            # Try dry-run (call transaction)
             try:
-                res_tx = self.skale.manager.send_verdicts(self.id, ids, downtimes,
-                                                          latencies, wait_for=True)
-                tx_hash = res_tx.receipt['transactionHash'].hex()
-                if res_tx.receipt['status'] == 1:
-                    self.logger.info('The report was successfully sent')
-                    h_receipt = self.skale.monitors.contract.events.VerdictWasSent(
-                    ).processReceipt(res_tx.receipt)
-                    self.logger.info(LONG_LINE)
-                    self.logger.info(h_receipt)
-                    args = h_receipt[0]['args']
-                    try:
-                        db.save_report_event(datetime.utcfromtimestamp(args['time']),
-                                             str(tx_hash), args['fromMonitorIndex'],
-                                             args['toNodeIndex'], args['downtime'],
-                                             args['latency'], res_tx.receipt["gasUsed"])
-                    except Exception as err:
-                        self.logger.exception(f'Failed to save report event data. {err}')
-                if res_tx.receipt['status'] == 0:
-                    self.logger.info('The report was not sent - transaction failed')
-                    err_status = 1
-                self.logger.debug(f'Receipt: {res_tx.receipt}')
-                self.logger.info(LONG_DOUBLE_LINE)
-            except TransactionFailedError as err:
-                self.logger.info(f'An error occurred while sending report. Error: {err}')
-                raise
+                self.skale.manager.send_verdicts(self.id, ids, downtimes,
+                                                 latencies, dry_run=True)
+            except ValueError as err:
+                self.logger.info(f'Tx call failed: {err}')
+                raise TxCallFailedException
+            # Send transaction
+            tx_res = self.skale.manager.send_verdicts(self.id, ids, downtimes,
+                                                      latencies, wait_for=True)
+            tx_res.raise_for_status()
+
+            tx_hash = tx_res.receipt['transactionHash'].hex()
+            self.logger.info('The report was successfully sent')
+            h_receipt = self.skale.monitors.contract.events.VerdictWasSent(
+            ).processReceipt(tx_res.receipt)
+            self.logger.info(LONG_LINE)
+            self.logger.info(h_receipt)
+            args = h_receipt[0]['args']
+            try:
+                db.save_report_event(datetime.utcfromtimestamp(args['time']),
+                                     str(tx_hash), args['fromMonitorIndex'],
+                                     args['toNodeIndex'], args['downtime'],
+                                     args['latency'], tx_res.receipt["gasUsed"])
             except Exception as err:
-                self.logger.exception(f'An error occurred while sending report. Error: {err}')
+                self.logger.exception(f'Failed to save report event data. {err}')
+            self.logger.debug(f'Receipt: {tx_res.receipt}')
+            self.logger.info(LONG_DOUBLE_LINE)
 
         return err_status
 

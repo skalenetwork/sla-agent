@@ -26,3 +26,8 @@ class IsNotTimeException(Exception):
 class NodeNotFoundException(Exception):
     """Raised when Node ID doesn't exist in SKALE Manager"""
     pass
+
+
+class TxCallFailedException(Exception):
+    """Raised when sendVerdict transaction call (dry-run) failed"""
+    pass
