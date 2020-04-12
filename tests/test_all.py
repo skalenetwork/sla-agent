@@ -21,7 +21,7 @@ import time
 from datetime import datetime
 
 import pytest
-from skale.utils.web3_utils import TransactionFailedError
+from tools.exceptions import TxCallFailedException
 
 import sla_agent as sla
 from tests.constants import FAKE_IP, FAKE_REPORT_DATE, N_TEST_NODES
@@ -89,11 +89,11 @@ def test_send_reports_neg(monitor):
     print(f'Now date: {datetime.utcnow()}')
 
     fake_nodes = [{'id': 1, 'ip': FAKE_IP, 'rep_date': FAKE_REPORT_DATE}]
-    with pytest.raises(TransactionFailedError):
+    with pytest.raises(TxCallFailedException):
         monitor.send_reports(fake_nodes)
 
     fake_nodes = [{'id': 2, 'ip': FAKE_IP, 'rep_date': FAKE_REPORT_DATE}]
-    with pytest.raises(TransactionFailedError):
+    with pytest.raises(TxCallFailedException):
         monitor.send_reports(fake_nodes)
 
 
@@ -120,8 +120,18 @@ def test_send_reports_pos(monitor):
     reported_nodes = monitor.get_reported_nodes(monitor.nodes)
     db.clear_all_reports()
     assert monitor.send_reports(reported_nodes) == 0
-    # monitor.monitor_job()
-    # assert db.get_count_of_report_records() == 1
+
+
+def test_report_job_saves_data(monitor):
+    db.clear_all_reports()
+    print(f'Sleep for {TEST_DELTA} sec')
+    time.sleep(TEST_DELTA)
+    tx_res = skale.manager.get_bounty(cur_node_id + 1, wait_for=True)
+    tx_res.raise_for_status()
+    print(f'Sleep for {TEST_EPOCH - TEST_DELTA} sec')
+    time.sleep(TEST_EPOCH - TEST_DELTA)
+    monitor.monitor_job()
+    assert db.get_count_of_report_records() == 1
 
 
 def test_get_id_from_config(monitor):
