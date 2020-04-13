@@ -62,7 +62,7 @@ class ReportEvent(BaseModel):
 
 @dbhandle.connection_context()
 def save_metrics_to_db(my_id, target_id, is_offline, latency):
-    """ Save metrics (downtime and latency) to database."""
+    """Save metrics (downtime and latency) to database."""
     report = Report(my_id=my_id,
                     target_id=target_id,
                     is_offline=is_offline,
@@ -72,7 +72,7 @@ def save_metrics_to_db(my_id, target_id, is_offline, latency):
 
 @dbhandle.connection_context()
 def save_report_event(tx_dt, tx_hash, my_id, target_id, downtime, latency, gas_used):
-    """ Save bounty events data to database."""
+    """Save bounty events data to database."""
     data = ReportEvent(my_id=my_id,
                        target_id=target_id,
                        tx_dt=tx_dt,
@@ -86,7 +86,7 @@ def save_report_event(tx_dt, tx_hash, my_id, target_id, downtime, latency, gas_u
 
 @dbhandle.connection_context()
 def get_month_metrics_for_node(my_id, target_id, start_date, end_date) -> dict:
-    """ Returns a dict with aggregated month metrics - downtime and latency."""
+    """Returns a dict with aggregated month metrics - downtime and latency."""
 
     downtime_results = Report.select(
         fn.SUM(
