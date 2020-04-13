@@ -19,15 +19,15 @@
 
 
 class IsNotTimeException(Exception):
-    """Raised when reward date has come but current block's timestamp is less than reward date """
+    """Raised when reward date has come but current block's timestamp is less than reward date."""
     pass
 
 
 class NodeNotFoundException(Exception):
-    """Raised when Node ID doesn't exist in SKALE Manager"""
+    """Raised when Node ID doesn't exist in SKALE Manager."""
     pass
 
 
 class TxCallFailedException(Exception):
-    """Raised when sendVerdict transaction call (dry-run) failed"""
+    """Raised when sendVerdict transaction call (dry-run) failed."""
     pass

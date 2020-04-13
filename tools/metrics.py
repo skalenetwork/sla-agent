@@ -83,7 +83,7 @@ def get_containers_healthcheck_url(host):
 
 
 def get_containers_healthcheck(host):
-    """Return 0 if OK or 1 if failed"""
+    """Return 0 if OK or 1 if failed."""
     url = get_containers_healthcheck_url(host)
     logger.info(f'Checking: {url}')
     try:
@@ -118,7 +118,7 @@ def get_containers_healthcheck(host):
 
 
 def get_ping_node_results(host) -> dict:
-    """Returns a node host metrics (downtime and latency)"""
+    """Returns a node host metrics (downtime and latency)."""
 
     ping_parser = pingparsing.PingParsing()
     transmitter = pingparsing.PingTransmitter()

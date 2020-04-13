@@ -18,7 +18,7 @@
 #   along with sla-agent.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Module contains BaseAgent class - base class for SLA and Bounty agents
+Module contains BaseAgent class - base class for SLA and Bounty agents.
 """
 import json
 import logging
@@ -32,7 +32,7 @@ from tools.logger import init_agent_logger
 
 
 class BaseAgent:
-    """Base class for SLA and Bounty agents"""
+    """Base class for SLA and Bounty agents."""
 
     def __init__(self, skale, node_id=None):
         self.agent_name = self.__class__.__name__
@@ -59,7 +59,7 @@ class BaseAgent:
         retry=tenacity.retry_if_exception_type(KeyError) | tenacity.retry_if_exception_type(
             FileNotFoundError))
     def get_id_from_config(self, node_config_filepath) -> int:
-        """Gets node ID from config file for agent initialization"""
+        """Gets node ID from config file for agent initialization."""
         try:
             self.logger.debug('Reading node id from config file...')
             with open(node_config_filepath) as json_file:

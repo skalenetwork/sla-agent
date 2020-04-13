@@ -53,7 +53,7 @@ def run_agent(args, agent_class):
 
 
 def find_block_for_tx_stamp(skale, tx_stamp, lo=0, hi=None):
-    """Return nearest block number to given transaction timestamp"""
+    """Return nearest block number to given transaction timestamp."""
     count = 0
     if hi is None:
         hi = skale.web3.eth.blockNumber

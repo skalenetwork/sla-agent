@@ -49,7 +49,7 @@ class Monitor(base_agent.BaseAgent):
         self.reward_period = self.skale.constants_holder.get_reward_period()
 
     def validate_nodes(self, skale, nodes):
-        """Validate nodes and returns a list of nodes to be reported"""
+        """Validate nodes and returns a list of nodes to be reported."""
         self.logger.info(LONG_LINE)
         if len(nodes) == 0:
             self.logger.info(f'No nodes to be monitored')
@@ -71,7 +71,7 @@ class Monitor(base_agent.BaseAgent):
                 self.logger.error(f'No ping from {GOOD_IP} - skipping monitoring node {node["id"]}')
 
     def get_reported_nodes(self, nodes) -> list:
-        """Returns a list of nodes to be reported"""
+        """Returns a list of nodes to be reported."""
 
         last_block_number = self.skale.web3.eth.blockNumber
         block_data = self.skale.web3.eth.getBlock(last_block_number)
@@ -89,7 +89,7 @@ class Monitor(base_agent.BaseAgent):
         return nodes_for_report
 
     def send_reports(self, nodes_for_report):
-        """Send reports for every node from nodes_for_report"""
+        """Send reports for every node from nodes_for_report."""
 
         self.logger.info(LONG_LINE)
         err_status = 0
@@ -148,7 +148,7 @@ class Monitor(base_agent.BaseAgent):
 
     def monitor_job(self) -> None:
         """
-        Periodic job for monitoring nodes
+        Periodic job for monitoring nodes.
         """
         self.logger.info('New monitor job started...')
         skale = spawn_skale_lib(self.skale)
@@ -183,7 +183,7 @@ class Monitor(base_agent.BaseAgent):
         job_thread.start()
 
     def run(self) -> None:
-        """Starts agent"""
+        """Starts sla agent."""
         self.logger.debug(f'{self.agent_name} started')
         self.run_threaded(self.monitor_job)
         self.run_threaded(self.report_job)
