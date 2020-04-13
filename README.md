@@ -1,7 +1,7 @@
 ![Test](https://github.com/skalenetwork/sla-agent/workflows/Test/badge.svg)
 ![Build and publish](https://github.com/skalenetwork/sla-agent/workflows/Build%20and%20publish/badge.svg)
 [![codecov](https://codecov.io/gh/skalenetwork/sla-agent/branch/develop/graph/badge.svg)](https://codecov.io/gh/skalenetwork/sla-agent)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/4faa45f48f164683bc985648136e74a7)](https://www.codacy.com/gh/skalenetwork/sla-agent?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=skalenetwork/sla-agent&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/4faa45f48f164683bc985648136e74a7)](https://www.codacy.com/gh/skalenetwork/sla-agent?utm_source=github.com&utm_medium=referral&utm_content=skalenetwork/sla-agent&utm_campaign=Badge_Grade)
 [![Discord](https://img.shields.io/discord/534485763354787851.svg)](https://discord.gg/vvUtWJB)
 
 # SKALE SLA Agent
@@ -72,8 +72,9 @@ _in process_
 
 -   [SKALE Network Website](https://skale.network)
 -   [SKALE Network Twitter](https://twitter.com/SkaleNetwork)
--   [SKALE Network Blog](https://skale.network/blog)
-    Learn more about the SKALE community over on [Discord](http://skale.chat).
+-   [SKALE Network Blog](https://skale.network/blog)  
+
+Learn more about the SKALE community over on [Discord](http://skale.chat).
 
 ## Contributing
 
