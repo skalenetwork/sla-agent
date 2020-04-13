@@ -18,7 +18,7 @@
 #   along with sla-agent.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Module contains BaseAgent class - base class for SLA and Bounty agents.
+Module contains BaseAgent class.
 """
 import json
 import logging
@@ -32,8 +32,7 @@ from tools.logger import init_agent_logger
 
 
 class BaseAgent:
-    """Base class for SLA and Bounty agents."""
-
+    """Base class for SLA agent."""
     def __init__(self, skale, node_id=None):
         self.agent_name = self.__class__.__name__
         init_agent_logger(self.agent_name, node_id)

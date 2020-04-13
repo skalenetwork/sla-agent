@@ -119,7 +119,6 @@ def get_containers_healthcheck(host):
 
 def get_ping_node_results(host) -> dict:
     """Returns a node host metrics (downtime and latency)."""
-
     ping_parser = pingparsing.PingParsing()
     transmitter = pingparsing.PingTransmitter()
     transmitter.destination_host = host

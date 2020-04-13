@@ -72,7 +72,6 @@ class Monitor(base_agent.BaseAgent):
 
     def get_reported_nodes(self, nodes) -> list:
         """Returns a list of nodes to be reported."""
-
         last_block_number = self.skale.web3.eth.blockNumber
         block_data = self.skale.web3.eth.getBlock(last_block_number)
         block_timestamp = datetime.utcfromtimestamp(block_data['timestamp'])
@@ -90,7 +89,6 @@ class Monitor(base_agent.BaseAgent):
 
     def send_reports(self, nodes_for_report):
         """Send reports for every node from nodes_for_report."""
-
         self.logger.info(LONG_LINE)
         err_status = 0
 
@@ -164,7 +162,7 @@ class Monitor(base_agent.BaseAgent):
 
     def report_job(self) -> None:
         """
-        Periodic job for sending reports
+        Periodic job for sending reports.
         """
         self.logger.info('New report job started...')
         nodes_for_report = self.get_reported_nodes(self.nodes)
