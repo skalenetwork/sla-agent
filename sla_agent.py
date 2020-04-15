@@ -22,19 +22,19 @@ SLA agent runs on every node of SKALE network, periodically gets a list of nodes
 from SC, checks its health metrics and sends transactions with average metrics to CS when it's time
 to send it
 """
-from tools.exceptions import TxCallFailedException
 import sys
 import threading
 import time
 from datetime import datetime
 
 import schedule
+import tenacity
 from skale.manager_client import spawn_skale_lib
 
-from tools.metrics import get_metrics_for_node, get_ping_node_results
-from tools import base_agent, db
 from configs import GOOD_IP, LONG_DOUBLE_LINE, LONG_LINE, MONITOR_PERIOD, REPORT_PERIOD
+from tools import base_agent, db
 from tools.helper import run_agent
+from tools.metrics import get_metrics_for_node, get_ping_node_results
 
 
 class Monitor(base_agent.BaseAgent):
@@ -113,30 +113,22 @@ class Monitor(base_agent.BaseAgent):
                 self.logger.info(f'Report on node id = {node["id"]} cannot be sent!')
 
         if len(ids) == len(downtimes) == len(latencies) and len(ids) != 0:  # and False:
-            # Try dry-run (call transaction)
-
-            try:
-                self.skale.manager.send_verdicts(self.id, ids, downtimes,
-                                                 latencies, dry_run=True)
-                self.logger.info(f'+++ TX call was successful!')
-            except ValueError as err:
-                self.logger.info(f'Tx call failed: {err}')
-                raise TxCallFailedException
-            # Send transaction
             self.logger.info(f'+++ ids = {ids}, downtimes = {downtimes}, latencies = {latencies}')
 
-            for _ in range(5):
-                tx_res = self.skale.manager.send_verdicts(self.id, ids, downtimes,
-                                                          latencies, wait_for=True)
-                if tx_res.receipt['status'] == 1:
-                    self.logger.info('+++ TX SUCCESS!')
-                    break
-                self.logger.info(f'+++ TX FAILED! {tx_res.receipt}')
-                time.sleep(20)
+            # Try dry-run (call transaction)
+            call_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(10),
+                                           wait=tenacity.wait_fixed(6),
+                                           reraise=True)
+            call_retry.call(self.skale.manager.send_verdicts,
+                            self.id, ids, downtimes, latencies, dry_run=True)
 
-            # tx_res = self.skale.manager.send_verdicts(self.id, ids, downtimes,
-            #                                           latencies, wait_for=True)
-            # tx_res.raise_for_status()
+            # Send transaction
+            send_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(3),
+                                           wait=tenacity.wait_fixed(20),
+                                           reraise=True)
+            tx_res = send_retry.call(self.skale.manager.send_verdicts,
+                                     self.id, ids, downtimes, latencies, wait_for=True)
+            tx_res.raise_for_status()
 
             tx_hash = tx_res.receipt['transactionHash'].hex()
             self.logger.info('The report was successfully sent')
