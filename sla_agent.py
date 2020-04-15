@@ -70,10 +70,10 @@ class Monitor(base_agent.BaseAgent):
             else:
                 self.logger.error(f'No ping from {GOOD_IP} - skipping monitoring node {node["id"]}')
 
-    def get_reported_nodes(self, nodes) -> list:
+    def get_reported_nodes(self, skale, nodes) -> list:
         """Returns a list of nodes to be reported."""
-        last_block_number = self.skale.web3.eth.blockNumber
-        block_data = self.skale.web3.eth.getBlock(last_block_number)
+        last_block_number = skale.web3.eth.blockNumber
+        block_data = skale.web3.eth.getBlock(last_block_number)
         block_timestamp = datetime.utcfromtimestamp(block_data['timestamp'])
         self.logger.info(f'Timestamp of current block: {block_timestamp}')
 
@@ -87,7 +87,7 @@ class Monitor(base_agent.BaseAgent):
                 nodes_for_report.append({'id': node['id'], 'rep_date': node['rep_date']})
         return nodes_for_report
 
-    def send_reports(self, nodes_for_report):
+    def send_reports(self, skale, nodes_for_report):
         """Send reports for every node from nodes_for_report."""
         self.logger.info(LONG_LINE)
         err_status = 0
@@ -119,20 +119,20 @@ class Monitor(base_agent.BaseAgent):
             call_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(10),
                                            wait=tenacity.wait_fixed(6),
                                            reraise=True)
-            call_retry.call(self.skale.manager.send_verdicts,
+            call_retry.call(skale.manager.send_verdicts,
                             self.id, ids, downtimes, latencies, dry_run=True)
 
             # Send transaction
             send_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(3),
                                            wait=tenacity.wait_fixed(20),
                                            reraise=True)
-            tx_res = send_retry.call(self.skale.manager.send_verdicts,
+            tx_res = send_retry.call(skale.manager.send_verdicts,
                                      self.id, ids, downtimes, latencies, wait_for=True)
             tx_res.raise_for_status()
 
             tx_hash = tx_res.receipt['transactionHash'].hex()
             self.logger.info('The report was successfully sent')
-            h_receipt = self.skale.monitors.contract.events.VerdictWasSent(
+            h_receipt = skale.monitors.contract.events.VerdictWasSent(
             ).processReceipt(tx_res.receipt)
             self.logger.info(LONG_LINE)
             self.logger.info(h_receipt)
@@ -170,12 +170,13 @@ class Monitor(base_agent.BaseAgent):
         Periodic job for sending reports.
         """
         self.logger.info('New report job started...')
-        nodes_for_report = self.get_reported_nodes(self.nodes)
+        skale = spawn_skale_lib(self.skale)
+        nodes_for_report = self.get_reported_nodes(skale, self.nodes)
 
         if len(nodes_for_report) > 0:
             self.logger.info(f'Number of nodes for reporting: {len(nodes_for_report)}')
             self.logger.info(f'The nodes to be reported on: {nodes_for_report}')
-            self.send_reports(nodes_for_report)
+            self.send_reports(skale, nodes_for_report)
         else:
             self.logger.info(f'- No nodes to be reported on')
 

@@ -73,12 +73,13 @@ def test_check_node_id():
 
 
 def test_send_reports_neg(monitor):
+    skale = monitor.skale
     print(f'--- Gas Price = {monitor.skale.web3.eth.gasPrice}')
     print(f'ETH balance of account : '
           f'{monitor.skale.web3.eth.getBalance(monitor.skale.wallet.address)}')
 
-    nodes = monitor.skale.monitors_data.get_checked_array(monitor.id)
-    reported_nodes = monitor.get_reported_nodes(nodes)
+    nodes = skale.monitors_data.get_checked_array(monitor.id)
+    reported_nodes = monitor.get_reported_nodes(skale, nodes)
     assert type(reported_nodes) is list
     print(f'\nrep nodes = {reported_nodes}')
     assert len(reported_nodes) == 0
@@ -89,22 +90,22 @@ def test_send_reports_neg(monitor):
 
     fake_nodes = [{'id': 1, 'ip': FAKE_IP, 'rep_date': FAKE_REPORT_DATE}]
     with pytest.raises(ValueError):
-        monitor.send_reports(fake_nodes)
+        monitor.send_reports(skale, fake_nodes)
 
     fake_nodes = [{'id': 2, 'ip': FAKE_IP, 'rep_date': FAKE_REPORT_DATE}]
     with pytest.raises(ValueError):
-        monitor.send_reports(fake_nodes)
+        monitor.send_reports(skale, fake_nodes)
 
 
 def test_get_reported_nodes_pos(monitor):
-
+    skale = monitor.skale
     print(f'Sleep for {TEST_EPOCH - TEST_DELTA} sec')
     time.sleep(TEST_EPOCH - TEST_DELTA)
-    nodes = monitor.skale.monitors_data.get_checked_array(monitor.id)
+    nodes = skale.monitors_data.get_checked_array(monitor.id)
     print(LONG_LINE)
     print(f'report date: {datetime.utcfromtimestamp(nodes[0]["rep_date"])}')
     print(f'now: {datetime.utcnow()}')
-    reported_nodes = monitor.get_reported_nodes(nodes)
+    reported_nodes = monitor.get_reported_nodes(skale, nodes)
     assert type(reported_nodes) is list
     print(f'rep nodes = {reported_nodes}')
 
@@ -112,13 +113,13 @@ def test_get_reported_nodes_pos(monitor):
 
 
 def test_send_reports_pos(monitor):
-    print(f'--- Gas Price = {monitor.skale.web3.eth.gasPrice}')
+    print(f'--- Gas Price = {skale.web3.eth.gasPrice}')
     print(f'ETH balance of account : '
-          f'{monitor.skale.web3.eth.getBalance(skale.wallet.address)}')
+          f'{skale.web3.eth.getBalance(skale.wallet.address)}')
 
-    reported_nodes = monitor.get_reported_nodes(monitor.nodes)
+    reported_nodes = monitor.get_reported_nodes(skale, monitor.nodes)
     db.clear_all_reports()
-    assert monitor.send_reports(reported_nodes) == 0
+    assert monitor.send_reports(skale, reported_nodes) == 0
 
 
 def test_report_job_saves_data(monitor):
