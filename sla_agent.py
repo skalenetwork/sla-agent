@@ -114,16 +114,29 @@ class Monitor(base_agent.BaseAgent):
 
         if len(ids) == len(downtimes) == len(latencies) and len(ids) != 0:  # and False:
             # Try dry-run (call transaction)
+
             try:
                 self.skale.manager.send_verdicts(self.id, ids, downtimes,
                                                  latencies, dry_run=True)
+                self.logger.info(f'+++ TX call was successful!')
             except ValueError as err:
                 self.logger.info(f'Tx call failed: {err}')
                 raise TxCallFailedException
             # Send transaction
-            tx_res = self.skale.manager.send_verdicts(self.id, ids, downtimes,
-                                                      latencies, wait_for=True)
-            tx_res.raise_for_status()
+            self.logger.info(f'+++ ids = {ids}, downtimes = {downtimes}, latencies = {latencies}')
+
+            for _ in range(5):
+                tx_res = self.skale.manager.send_verdicts(self.id, ids, downtimes,
+                                                          latencies, wait_for=True)
+                if tx_res.receipt['status'] == 1:
+                    self.logger.info('+++ TX SUCCESS!')
+                    break
+                self.logger.info(f'+++ TX FAILED! {tx_res.receipt}')
+                time.sleep(20)
+
+            # tx_res = self.skale.manager.send_verdicts(self.id, ids, downtimes,
+            #                                           latencies, wait_for=True)
+            # tx_res.raise_for_status()
 
             tx_hash = tx_res.receipt['transactionHash'].hex()
             self.logger.info('The report was successfully sent')
