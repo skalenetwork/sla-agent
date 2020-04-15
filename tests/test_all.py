@@ -88,11 +88,7 @@ def test_send_reports_neg(monitor):
     print(f'Report date: {datetime.utcfromtimestamp(nodes[0]["rep_date"])}')
     print(f'Now date: {datetime.utcnow()}')
 
-    fake_nodes = [{'id': 1, 'ip': FAKE_IP, 'rep_date': FAKE_REPORT_DATE}]
-    with pytest.raises(ValueError):
-        monitor.send_reports(skale, fake_nodes)
-
-    fake_nodes = [{'id': 2, 'ip': FAKE_IP, 'rep_date': FAKE_REPORT_DATE}]
+    fake_nodes = [{'id': 100, 'ip': FAKE_IP, 'rep_date': FAKE_REPORT_DATE}]
     with pytest.raises(ValueError):
         monitor.send_reports(skale, fake_nodes)
 
