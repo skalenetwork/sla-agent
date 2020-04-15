@@ -21,7 +21,6 @@ import time
 from datetime import datetime
 
 import pytest
-from tools.exceptions import TxCallFailedException
 
 import sla_agent as sla
 from tests.constants import FAKE_IP, FAKE_REPORT_DATE, N_TEST_NODES
@@ -89,11 +88,11 @@ def test_send_reports_neg(monitor):
     print(f'Now date: {datetime.utcnow()}')
 
     fake_nodes = [{'id': 1, 'ip': FAKE_IP, 'rep_date': FAKE_REPORT_DATE}]
-    with pytest.raises(TxCallFailedException):
+    with pytest.raises(ValueError):
         monitor.send_reports(fake_nodes)
 
     fake_nodes = [{'id': 2, 'ip': FAKE_IP, 'rep_date': FAKE_REPORT_DATE}]
-    with pytest.raises(TxCallFailedException):
+    with pytest.raises(ValueError):
         monitor.send_reports(fake_nodes)
 
 
