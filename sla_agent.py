@@ -33,7 +33,7 @@ from skale.manager_client import spawn_skale_lib
 
 from configs import GOOD_IP, LONG_DOUBLE_LINE, LONG_LINE, MONITOR_PERIOD, REPORT_PERIOD
 from tools import base_agent, db
-from tools.helper import run_agent
+from tools.helper import init_skale
 from tools.metrics import get_metrics_for_node, get_ping_node_results
 
 
@@ -200,4 +200,12 @@ class Monitor(base_agent.BaseAgent):
 
 
 if __name__ == '__main__':
-    run_agent(sys.argv, Monitor)
+
+    if len(sys.argv) > 1 and sys.argv[1].isdecimal():
+        node_id = int(sys.argv[1])
+    else:
+        node_id = None
+
+    skale = init_skale(node_id)
+    monitor = Monitor(skale, node_id)
+    monitor.run()

@@ -41,17 +41,6 @@ def init_skale(node_id=None):
     return Skale(ENDPOINT, ABI_FILEPATH, wallet)
 
 
-def run_agent(args, agent_class):
-    if len(args) > 1 and args[1].isdecimal():
-        node_id = int(args[1])
-    else:
-        node_id = None
-
-    skale = init_skale(node_id)
-    agent = agent_class(skale, node_id)
-    agent.run()
-
-
 def find_block_for_tx_stamp(skale, tx_stamp, lo=0, hi=None):
     """Return nearest block number to given transaction timestamp."""
     count = 0
