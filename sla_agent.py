@@ -161,7 +161,7 @@ class Monitor(base_agent.BaseAgent):
         self.logger.info('New monitor job started...')
         skale = spawn_skale_lib(self.skale)
         try:
-            self.nodes = self.skale.monitors_data.get_checked_array(self.id)
+            self.nodes = skale.monitors_data.get_checked_array(self.id)
         except Exception as err:
             self.logger.exception(f'Failed to get list of monitored nodes. Error: {err}')
             self.logger.info('Monitoring nodes from previous job list')
