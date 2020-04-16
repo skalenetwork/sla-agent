@@ -37,6 +37,11 @@ from tools.helper import run_agent
 from tools.metrics import get_metrics_for_node, get_ping_node_results
 
 
+def run_threaded(job_func):
+    job_thread = threading.Thread(target=job_func)
+    job_thread.start()
+
+
 class Monitor(base_agent.BaseAgent):
 
     def __init__(self, skale, node_id=None):
@@ -182,15 +187,11 @@ class Monitor(base_agent.BaseAgent):
 
         self.logger.info('Report job finished...')
 
-    def run_threaded(self, job_func):
-        job_thread = threading.Thread(target=job_func)
-        job_thread.start()
-
     def run(self) -> None:
         """Starts sla agent."""
         self.logger.debug(f'{self.agent_name} started')
-        self.run_threaded(self.monitor_job)
-        self.run_threaded(self.report_job)
+        run_threaded(self.monitor_job)
+        run_threaded(self.report_job)
         schedule.every(MONITOR_PERIOD).minutes.do(self.run_threaded, self.monitor_job)
         schedule.every(REPORT_PERIOD).minutes.do(self.run_threaded, self.report_job)
         while True:
