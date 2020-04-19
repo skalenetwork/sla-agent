@@ -192,8 +192,8 @@ class Monitor(base_agent.BaseAgent):
         self.logger.debug(f'{self.agent_name} started')
         run_threaded(self.monitor_job)
         run_threaded(self.report_job)
-        schedule.every(MONITOR_PERIOD).minutes.do(self.run_threaded, self.monitor_job)
-        schedule.every(REPORT_PERIOD).minutes.do(self.run_threaded, self.report_job)
+        schedule.every(MONITOR_PERIOD).minutes.do(run_threaded, self.monitor_job)
+        schedule.every(REPORT_PERIOD).minutes.do(run_threaded, self.report_job)
         while True:
             schedule.run_pending()
             time.sleep(1)
