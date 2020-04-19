@@ -24,7 +24,9 @@ from skale.schain_config.ports_allocation import get_schain_base_port_on_node
 from web3 import HTTPProvider, Web3
 
 from configs import GOOD_IP, WATCHDOG_PORT, WATCHDOG_URL
-from tools.helper import logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_metrics_for_node(skale, node, is_test_mode):
