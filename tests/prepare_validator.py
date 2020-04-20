@@ -1,13 +1,10 @@
 import os
 
-from skale import Skale
-from skale.utils.web3_utils import init_web3
-from skale.wallets import Web3Wallet
-
 from tests.constants import (
     D_VALIDATOR_DESC, D_VALIDATOR_FEE, D_VALIDATOR_ID, D_VALIDATOR_MIN_DEL, D_VALIDATOR_NAME,
-    ENDPOINT, ETH_PRIVATE_KEY, TEST_ABI_FILEPATH, TEST_DELTA, TEST_EPOCH
+    TEST_DELTA, TEST_EPOCH
 )
+from tools.helper import init_skale
 
 IP_BASE = '10.1.0.'
 TEST_PORT = 123
@@ -101,12 +98,6 @@ def create_set_of_nodes(skale, first_node_id, nodes_number=2):
             create_node(skale, node_id)
     else:
         print(f'Node with id = {first_node_id} is already exists! Try another start id...')
-
-
-def init_skale():
-    web3 = init_web3(ENDPOINT)
-    wallet = Web3Wallet(ETH_PRIVATE_KEY, web3)
-    return Skale(ENDPOINT, TEST_ABI_FILEPATH, wallet)
 
 
 if __name__ == "__main__":

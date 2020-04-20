@@ -26,12 +26,11 @@ import sla_agent as sla
 from tests.constants import FAKE_IP, FAKE_REPORT_DATE, N_TEST_NODES
 from tests.prepare_validator import (
     TEST_DELTA, TEST_EPOCH, create_dirs, create_set_of_nodes,
-    get_active_ids, init_skale
-)
+    get_active_ids)
 from tools import db
 from tools.config_storage import ConfigStorage
 from configs import LONG_LINE
-from tools.helper import check_node_id
+from tools.helper import check_node_id, init_skale
 
 skale = init_skale()
 
