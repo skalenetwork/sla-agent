@@ -28,7 +28,7 @@ import time
 from datetime import datetime
 
 import schedule
-import tenacity
+from tools.helper import call_tx_retry, send_tx_retry
 from skale.manager_client import spawn_skale_lib
 
 from configs import GOOD_IP, LONG_DOUBLE_LINE, LONG_LINE, MONITOR_PERIOD, REPORT_PERIOD
@@ -121,18 +121,12 @@ class Monitor(base_agent.BaseAgent):
             self.logger.info(f'+++ ids = {ids}, downtimes = {downtimes}, latencies = {latencies}')
 
             # Try dry-run (call transaction)
-            call_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(10),
-                                           wait=tenacity.wait_fixed(6),
-                                           reraise=True)
-            call_retry.call(skale.manager.send_verdicts,
-                            self.id, ids, downtimes, latencies, dry_run=True)
+            call_tx_retry.call(skale.manager.send_verdicts,
+                               self.id, ids, downtimes, latencies, dry_run=True)
 
             # Send transaction
-            send_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(3),
-                                           wait=tenacity.wait_fixed(20),
-                                           reraise=True)
-            tx_res = send_retry.call(skale.manager.send_verdicts,
-                                     self.id, ids, downtimes, latencies, wait_for=True)
+            tx_res = send_tx_retry.call(skale.manager.send_verdicts,
+                                        self.id, ids, downtimes, latencies, wait_for=True)
             tx_res.raise_for_status()
 
             tx_hash = tx_res.receipt['transactionHash'].hex()

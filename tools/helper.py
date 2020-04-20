@@ -20,7 +20,7 @@
 import logging
 import os
 from datetime import datetime
-
+import tenacity
 from skale import Skale
 from skale.utils.web3_utils import init_web3
 from skale.wallets import RPCWallet, Web3Wallet
@@ -31,13 +31,25 @@ from configs.web3 import ABI_FILEPATH, ENDPOINT
 logger = logging.getLogger(__name__)
 
 
+call_tx_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(6),
+                                  wait=tenacity.wait_fixed(5),
+                                  reraise=True)
+
+send_tx_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(3),
+                                  wait=tenacity.wait_fixed(20),
+                                  reraise=True)
+regular_call_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(10),
+                                       wait=tenacity.wait_fixed(2),
+                                       reraise=True)
+
+
 def init_skale(node_id=None):
-    if node_id is None:
-        wallet = RPCWallet(os.environ['TM_URL']) if ENV != 'DEV' else None
+    if node_id is None and ENV != 'DEV':
+        wallet = RPCWallet(os.environ['TM_URL'])
     else:
-        ETH_PRIVATE_KEY = os.environ['ETH_PRIVATE_KEY']
+        eth_private_key = os.environ['ETH_PRIVATE_KEY']
         web3 = init_web3(ENDPOINT)
-        wallet = Web3Wallet(ETH_PRIVATE_KEY, web3)
+        wallet = Web3Wallet(eth_private_key, web3)
     return Skale(ENDPOINT, ABI_FILEPATH, wallet)
 
 
