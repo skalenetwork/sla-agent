@@ -28,7 +28,6 @@ from tests.prepare_validator import (
     TEST_DELTA, TEST_EPOCH, create_dirs, create_set_of_nodes,
     get_active_ids)
 from tools import db
-from tools.config_storage import ConfigStorage
 from configs import LONG_LINE
 from tools.helper import check_node_id, init_skale
 
@@ -133,12 +132,3 @@ def test_report_job_saves_data(monitor):
     time.sleep(TEST_EPOCH - TEST_DELTA)
     monitor.report_job()
     assert db.get_count_of_report_events_records() == 1
-
-
-def test_get_id_from_config(monitor):
-    config_file_name = 'test_node_config'
-    node_index = 1
-    config_node = ConfigStorage(config_file_name)
-    config_node.update({'node_id': node_index})
-    node_id = monitor.get_id_from_config(config_file_name)
-    assert node_id == node_index
