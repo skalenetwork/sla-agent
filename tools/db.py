@@ -22,8 +22,9 @@ from peewee import BooleanField, CharField, DateTimeField, IntegerField, Model, 
     MySQLDatabase, fn
 
 from configs.db import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
+import logging
 
-print(f'DB HOST = {DB_HOST}')
+logger = logging.getLogger(__name__)
 
 
 dbhandle = MySQLDatabase(
@@ -104,8 +105,6 @@ def get_month_metrics_for_node(my_id, target_id, start_date, end_date) -> dict:
             Report.stamp >= start_date) & (
             Report.stamp <= end_date) & (
             Report.latency >= 0))
-    if downtime_results[0].sum is None:
-        print(f'Sum result from db is None')
     downtime = int(
         downtime_results[0].sum) if downtime_results[0].sum is not None else 0
     latency = latency_results[0].avg if latency_results[0].avg is not None else 0
@@ -115,7 +114,7 @@ def get_month_metrics_for_node(my_id, target_id, start_date, end_date) -> dict:
 @dbhandle.connection_context()
 def clear_all_reports():
     nrows = Report.delete().execute()
-    print(f'{nrows} records deleted')
+    logger.info(f'{nrows} records deleted')
 
 
 @dbhandle.connection_context()
