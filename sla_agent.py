@@ -28,7 +28,7 @@ import time
 from datetime import datetime
 
 import schedule
-from tools.helper import call_tx_retry, send_tx_retry
+from tools.helper import call_tx_retry, send_tx_retry, regular_call_retry
 from skale.manager_client import spawn_skale_lib
 
 from configs import GOOD_IP, LONG_DOUBLE_LINE, LONG_LINE, MONITOR_PERIOD, REPORT_PERIOD
@@ -47,11 +47,7 @@ class Monitor(base_agent.BaseAgent):
     def __init__(self, skale, node_id=None):
         super().__init__(skale, node_id)
         self.nodes = []
-        try:
-            self.nodes = skale.monitors_data.get_checked_array(self.id)
-        except Exception as err:
-            self.logger.exception(f'Cannot get get_checked_array :{err}')
-        self.reward_period = self.skale.constants_holder.get_reward_period()
+        self.reward_period = regular_call_retry.call(self.skale.constants_holder.get_reward_period)
 
     def validate_nodes(self, skale, nodes):
         """Validate nodes and returns a list of nodes to be reported."""
@@ -78,7 +74,7 @@ class Monitor(base_agent.BaseAgent):
     def get_reported_nodes(self, skale, nodes) -> list:
         """Returns a list of nodes to be reported."""
         last_block_number = skale.web3.eth.blockNumber
-        block_data = skale.web3.eth.getBlock(last_block_number)
+        block_data = regular_call_retry.call(skale.web3.eth.getBlock, last_block_number)
         block_timestamp = datetime.utcfromtimestamp(block_data['timestamp'])
         self.logger.info(f'Timestamp of current block: {block_timestamp}')
 
@@ -123,7 +119,6 @@ class Monitor(base_agent.BaseAgent):
             # Try dry-run (call transaction)
             call_tx_retry.call(skale.manager.send_verdicts,
                                self.id, ids, downtimes, latencies, dry_run=True)
-
             # Send transaction
             tx_res = send_tx_retry.call(skale.manager.send_verdicts,
                                         self.id, ids, downtimes, latencies, wait_for=True)
@@ -145,7 +140,6 @@ class Monitor(base_agent.BaseAgent):
                 self.logger.exception(f'Failed to save report event data. {err}')
             self.logger.debug(f'Receipt: {tx_res.receipt}')
             self.logger.info(LONG_DOUBLE_LINE)
-
         return err_status
 
     def monitor_job(self) -> None:
@@ -155,7 +149,7 @@ class Monitor(base_agent.BaseAgent):
         self.logger.info('New monitor job started...')
         skale = spawn_skale_lib(self.skale)
         try:
-            self.nodes = skale.monitors_data.get_checked_array(self.id)
+            self.nodes = regular_call_retry.call(skale.monitors_data.get_checked_array, self.id)
         except Exception as err:
             self.logger.exception(f'Failed to get list of monitored nodes. Error: {err}')
             self.logger.info('Monitoring nodes from previous job list')
@@ -172,15 +166,15 @@ class Monitor(base_agent.BaseAgent):
         skale = spawn_skale_lib(self.skale)
         nodes_for_report = self.get_reported_nodes(skale, self.nodes)
 
+        self.logger.info(f'>>>1 Number of nodes for reporting: {len(nodes_for_report)}')
+        self.logger.info(f'>>>1 The nodes to be reported on: {nodes_for_report}')
+
+        self.nodes = skale.monitors_data.get_checked_array(self.id)
+        nodes_for_report = self.get_reported_nodes(skale, self.nodes)
+        self.logger.info(f'>>>2 Number of nodes for reporting: {len(nodes_for_report)}')
+        self.logger.info(f'>>>2 The nodes to be reported on: {nodes_for_report}')
+
         if len(nodes_for_report) > 0:
-            self.logger.info(f'Number of nodes for reporting: {len(nodes_for_report)}')
-            self.logger.info(f'>>>1 The nodes to be reported on: {nodes_for_report}')
-
-            self.nodes = skale.monitors_data.get_checked_array(self.id)
-            nodes_for_report = self.get_reported_nodes(skale, self.nodes)
-            self.logger.info(f'Number of nodes for reporting: {len(nodes_for_report)}')
-            self.logger.info(f'>>>2 The nodes to be reported on: {nodes_for_report}')
-
             self.send_reports(skale, nodes_for_report)
         else:
             self.logger.info(f'- No nodes to be reported on')
