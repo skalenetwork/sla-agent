@@ -118,5 +118,16 @@ def clear_all_reports():
 
 
 @dbhandle.connection_context()
+def clear_all_report_events():
+    nrows = ReportEvent.delete().execute()
+    logger.info(f'{nrows} records deleted')
+
+
+@dbhandle.connection_context()
 def get_count_of_report_records():
     return Report.select().count()
+
+
+@dbhandle.connection_context()
+def get_count_of_report_events_records():
+    return ReportEvent.select().count()

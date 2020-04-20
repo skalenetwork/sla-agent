@@ -71,6 +71,12 @@ def test_check_node_id():
     assert not check_node_id(skale, 100)
 
 
+def test_monitor_job_saves_data(monitor):
+    db.clear_all_reports()
+    monitor.monitor_job()
+    assert db.get_count_of_report_records() == 1
+
+
 def test_send_reports_neg(monitor):
     skale = monitor.skale
     print(f'--- Gas Price = {monitor.skale.web3.eth.gasPrice}')
@@ -118,15 +124,15 @@ def test_send_reports_pos(monitor):
 
 
 def test_report_job_saves_data(monitor):
-    db.clear_all_reports()
+    db.clear_all_report_events()
     print(f'Sleep for {TEST_DELTA} sec')
     time.sleep(TEST_DELTA)
     tx_res = skale.manager.get_bounty(cur_node_id + 1, wait_for=True)
     tx_res.raise_for_status()
     print(f'Sleep for {TEST_EPOCH - TEST_DELTA} sec')
     time.sleep(TEST_EPOCH - TEST_DELTA)
-    monitor.monitor_job()
-    assert db.get_count_of_report_records() == 1
+    monitor.report_job()
+    assert db.get_count_of_report_events_records() == 1
 
 
 def test_get_id_from_config(monitor):
