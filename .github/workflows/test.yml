@@ -14,7 +14,7 @@ jobs:
       DB_USER: ${{ secrets.DB_USER }}
       DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
       DB_PORT: ${{ secrets.DB_PORT }}
-
+      ENV: "DEV"
       MANAGER_BRANCH: "stable"
     steps:
     - uses: actions/checkout@v2
@@ -44,7 +44,7 @@ jobs:
       run: |
         export PYTHONPATH=$PYTHONPATH:.
         python tests/prepare_validator.py
-        ENV=DEV py.test -v -s --cov=./ tests/ --cov-report term-missing
+        py.test -v -s --cov=./ tests/ --cov-report term-missing
     - name: Codecov
       run: |
         codecov -t $CODECOV_TOKEN
