@@ -117,7 +117,7 @@ class Monitor(base_agent.BaseAgent):
                 self.logger.error(f'Failed getting month metrics from db: {err}')
                 self.logger.info(f'Report on node id = {node["id"]} cannot be sent!')
 
-        if len(ids) == len(downtimes) == len(latencies) and len(ids) != 0:  # and False:
+        if len(ids) == len(downtimes) == len(latencies) and len(ids) != 0:
             self.logger.info(f'+++ ids = {ids}, downtimes = {downtimes}, latencies = {latencies}')
 
             # Try dry-run (call transaction)
@@ -180,7 +180,13 @@ class Monitor(base_agent.BaseAgent):
 
         if len(nodes_for_report) > 0:
             self.logger.info(f'Number of nodes for reporting: {len(nodes_for_report)}')
-            self.logger.info(f'The nodes to be reported on: {nodes_for_report}')
+            self.logger.info(f'>>>1 The nodes to be reported on: {nodes_for_report}')
+
+            self.nodes = skale.monitors_data.get_checked_array(self.id)
+            nodes_for_report = self.get_reported_nodes(skale, self.nodes)
+            self.logger.info(f'Number of nodes for reporting: {len(nodes_for_report)}')
+            self.logger.info(f'>>>2 The nodes to be reported on: {nodes_for_report}')
+
             self.send_reports(skale, nodes_for_report)
         else:
             self.logger.info(f'- No nodes to be reported on')
