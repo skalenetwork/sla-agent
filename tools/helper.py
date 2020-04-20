@@ -24,7 +24,7 @@ import tenacity
 from skale import Skale
 from skale.utils.web3_utils import init_web3
 from skale.wallets import RPCWallet, Web3Wallet
-
+import json
 from configs import ENV
 from configs.web3 import ABI_FILEPATH, ENDPOINT
 
@@ -75,3 +75,20 @@ def find_block_for_tx_stamp(skale, tx_stamp, lo=0, hi=None):
 
 def check_node_id(skale, node_id):
     return node_id in skale.nodes_data.get_active_node_ids()
+
+
+@tenacity.retry(
+    wait=tenacity.wait_fixed(20),
+    retry=tenacity.retry_if_exception_type(KeyError) | tenacity.retry_if_exception_type(
+        FileNotFoundError))
+def get_id_from_config(node_config_filepath) -> int:
+    """Gets node ID from config file for agent initialization."""
+    try:
+        logger.debug('Reading node id from config file...')
+        with open(node_config_filepath) as json_file:
+            data = json.load(json_file)
+        return data['node_id']
+    except (FileNotFoundError, KeyError) as err:
+        logger.warning(
+            f'Cannot read a node id from config file - is the node already registered?')
+        raise err

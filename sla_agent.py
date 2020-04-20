@@ -32,9 +32,14 @@ from tools.helper import call_tx_retry, send_tx_retry, regular_call_retry
 from skale.manager_client import spawn_skale_lib
 
 from configs import GOOD_IP, LONG_DOUBLE_LINE, LONG_LINE, MONITOR_PERIOD, REPORT_PERIOD
-from tools import base_agent, db
-from tools.helper import init_skale
+from tools import db
+from tools.helper import init_skale, get_id_from_config
 from tools.metrics import get_metrics_for_node, get_ping_node_results
+from configs import NODE_CONFIG_FILEPATH
+from tools.exceptions import NodeNotFoundException
+from tools.helper import check_node_id
+from tools.logger import init_agent_logger
+import logging
 
 
 def run_threaded(job_func):
@@ -42,10 +47,28 @@ def run_threaded(job_func):
     job_thread.start()
 
 
-class Monitor(base_agent.BaseAgent):
+class Monitor:
 
     def __init__(self, skale, node_id=None):
-        super().__init__(skale, node_id)
+        self.agent_name = self.__class__.__name__
+        init_agent_logger(self.agent_name, node_id)
+        self.logger = logging.getLogger(__name__)
+
+        self.logger.info(f'Initialization of {self.agent_name} ...')
+        if node_id is None:
+            self.id = get_id_from_config(NODE_CONFIG_FILEPATH)
+            self.is_test_mode = False
+        else:
+            self.id = node_id
+            self.is_test_mode = True
+        self.skale = skale
+        if not check_node_id(self.skale, self.id):
+            err_msg = f'There is no Node with ID = {self.id} in SKALE manager'
+            self.logger.error(err_msg)
+            raise NodeNotFoundException(err_msg)
+        self.logger.info(f'Node ID = {self.id}')
+        self.logger.info(f'Initialization of {self.agent_name} is completed')
+
         self.nodes = []
         self.reward_period = regular_call_retry.call(self.skale.constants_holder.get_reward_period)
 
