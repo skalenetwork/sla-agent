@@ -34,20 +34,20 @@ def setup_validator(skale):
         node_address=skale.wallet.address,
         wait_for=True
     )
-    accelerate_skale_manager(skale)
+    change_skale_manager_time_constants(skale)
 
 
-def accelerate_skale_manager(skale):
+def change_skale_manager_time_constants(skale, test_epoch=TEST_EPOCH, test_delta=TEST_DELTA):
 
     reward_period = skale.constants_holder.get_reward_period()
     delta_period = skale.constants_holder.get_delta_period()
-    print(f'Existing times for SKALE Manager: {reward_period}, {delta_period}')
+    print(f'Existing SKALE Manager time constants: {reward_period}, {delta_period}')
 
-    tx_res = skale.constants_holder.set_periods(TEST_EPOCH, TEST_DELTA, wait_for=True)
+    tx_res = skale.constants_holder.set_periods(test_epoch, test_delta, wait_for=True)
     assert tx_res.receipt['status'] == 1
     reward_period = skale.constants_holder.get_reward_period()
     delta_period = skale.constants_holder.get_delta_period()
-    print(f'New time values for SKALE Manager: {reward_period}, {delta_period}')
+    print(f'New SKALE Manager time constants: {reward_period}, {delta_period}')
 
 
 def set_test_msr(skale, msr=D_VALIDATOR_MIN_DEL):
