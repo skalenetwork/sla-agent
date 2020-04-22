@@ -187,17 +187,12 @@ class Monitor:
         """
         self.logger.info('New report job started...')
         skale = spawn_skale_lib(self.skale)
-        nodes_for_report = self.get_reported_nodes(skale, self.nodes)
-
-        self.logger.info(f'>>>1 Number of nodes for reporting: {len(nodes_for_report)}')
-        self.logger.info(f'>>>1 The nodes to be reported on: {nodes_for_report}')
 
         self.nodes = skale.monitors_data.get_checked_array(self.id)
         nodes_for_report = self.get_reported_nodes(skale, self.nodes)
-        self.logger.info(f'>>>2 Number of nodes for reporting: {len(nodes_for_report)}')
-        self.logger.info(f'>>>2 The nodes to be reported on: {nodes_for_report}')
 
         if len(nodes_for_report) > 0:
+            self.logger.info(f'Nodes for report ({len(nodes_for_report)}): {nodes_for_report}')
             self.send_reports(skale, nodes_for_report)
         else:
             self.logger.info(f'- No nodes to be reported on')
