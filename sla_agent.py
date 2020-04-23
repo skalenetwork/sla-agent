@@ -72,10 +72,10 @@ class Monitor:
         """Validate nodes and returns a list of nodes to be reported."""
         self.logger.info(LONG_LINE)
         if len(nodes) == 0:
-            self.logger.info(f'No nodes to be monitored')
+            self.logger.info(f'No nodes for monitoring')
         else:
             self.logger.info(f'Number of nodes for monitoring: {len(nodes)}')
-            self.logger.info(f'The nodes to be monitored : {nodes}')
+            self.logger.info(f'Nodes for monitoring : {nodes}')
 
         for node in nodes:
             if not get_ping_node_results(GOOD_IP)['is_offline']:
@@ -84,10 +84,11 @@ class Monitor:
                     db.save_metrics_to_db(self.id, node['id'],
                                           metrics['is_offline'], metrics['latency'])
                 except Exception as err:
-                    self.logger.error(f'Couldn\'t save metrics to database - '
-                                      f'is mysql container running? {err}')
+                    self.logger.error(f'Cannot save metrics to database - '
+                                      f'is MySQL container running? {err}')
             else:
-                self.logger.error(f'No ping from {GOOD_IP} - skipping monitoring node {node["id"]}')
+                self.logger.info(f'Cannot ping {GOOD_IP} - is network ok? '
+                                 f'Skipping monitoring node {node["id"]}')
                 # TODO: Notify skale-admin
 
     def get_reported_nodes(self, skale, nodes) -> list:
@@ -103,7 +104,7 @@ class Monitor:
             rep_date = datetime.utcfromtimestamp(node['rep_date'])
             self.logger.info(f'Report date for node id={node["id"]}: {rep_date}')
             if rep_date < block_timestamp:
-                # Forming a list of nodes that already need to be reported
+                # Forming a list of nodes that already have to be reported on
                 nodes_for_report.append({'id': node['id'], 'rep_date': node['rep_date']})
         return nodes_for_report
 
