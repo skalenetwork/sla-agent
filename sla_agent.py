@@ -19,8 +19,8 @@
 
 """
 SLA agent runs on every node of SKALE network, periodically gets a list of nodes to validate
-from SC, checks its health metrics and sends transactions with average metrics to CS when it's time
-to send it
+from SKALE Manager (SM), checks its health metrics and sends transactions with average metrics to SM
+when it's time to send it
 """
 import sys
 import threading
@@ -53,7 +53,7 @@ class Monitor:
         init_agent_logger(self.agent_name, node_id)
         self.logger = logging.getLogger(__name__)
 
-        self.logger.info(f'Initialization of {self.agent_name} ...')
+        self.logger.info(f'Initialization of {self.agent_name} started...')
         if node_id is None:
             self.id = get_id_from_config(NODE_CONFIG_FILEPATH)
             self.is_test_mode = False
@@ -80,7 +80,6 @@ class Monitor:
         for node in nodes:
             if not get_ping_node_results(GOOD_IP)['is_offline']:
                 metrics = get_metrics_for_node(skale, node, self.is_test_mode)
-                self.logger.info(f'Received metrics from node ID = {node["id"]}: {metrics}')
                 try:
                     db.save_metrics_to_db(self.id, node['id'],
                                           metrics['is_offline'], metrics['latency'])
@@ -89,6 +88,7 @@ class Monitor:
                                       f'is mysql container running? {err}')
             else:
                 self.logger.error(f'No ping from {GOOD_IP} - skipping monitoring node {node["id"]}')
+                # TODO: Notify skale-admin
 
     def get_reported_nodes(self, skale, nodes) -> list:
         """Returns a list of nodes to be reported."""

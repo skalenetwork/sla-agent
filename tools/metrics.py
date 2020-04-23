@@ -88,7 +88,6 @@ def get_containers_healthcheck_url(host):
 def get_containers_healthcheck(host):
     """Return 0 if OK or 1 if failed."""
     url = get_containers_healthcheck_url(host)
-    logger.info(f'Checking: {url}')
     try:
         response = requests.get(url, timeout=15)
     except requests.exceptions.ConnectionError as err:
@@ -101,7 +100,7 @@ def get_containers_healthcheck(host):
         return 1
 
     if response.status_code != requests.codes.ok:
-        logger.info(f'Request failed, status code: {response.status_code}')
+        logger.info(f'Request to {url} failed, status code: {response.status_code}')
         return 1
 
     res = response.json()
