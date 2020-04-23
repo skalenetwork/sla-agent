@@ -27,6 +27,7 @@ from skale.wallets import RPCWallet, Web3Wallet
 import json
 from configs import ENV
 from configs.web3 import ABI_FILEPATH, ENDPOINT
+from tools.exceptions import NodeNotFoundException
 
 logger = logging.getLogger(__name__)
 
@@ -73,8 +74,11 @@ def find_block_for_tx_stamp(skale, tx_stamp, lo=0, hi=None):
     return lo
 
 
-def check_node_id(skale, node_id):
-    return node_id in skale.nodes_data.get_active_node_ids()
+def check_if_node_is_registered(skale, node_id):
+    if node_id not in skale.nodes_data.get_active_node_ids():
+        err_msg = f'There is no Node with ID = {node_id} in SKALE manager'
+        logger.error(err_msg)
+        raise NodeNotFoundException(err_msg)
 
 
 @tenacity.retry(

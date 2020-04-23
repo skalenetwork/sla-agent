@@ -36,8 +36,7 @@ from tools import db
 from tools.helper import init_skale, get_id_from_config
 from tools.metrics import get_metrics_for_node, get_ping_node_results
 from configs import NODE_CONFIG_FILEPATH
-from tools.exceptions import NodeNotFoundException
-from tools.helper import check_node_id
+from tools.helper import check_if_node_is_registered
 from tools.logger import init_agent_logger
 import logging
 
@@ -62,12 +61,9 @@ class Monitor:
             self.id = node_id
             self.is_test_mode = True
         self.skale = skale
-        if not check_node_id(self.skale, self.id):
-            err_msg = f'There is no Node with ID = {self.id} in SKALE manager'
-            self.logger.error(err_msg)
-            raise NodeNotFoundException(err_msg)
-        self.logger.info(f'Node ID = {self.id}')
-        self.logger.info(f'Initialization of {self.agent_name} is completed')
+
+        check_if_node_is_registered(self.skale, self.id)
+        self.logger.info(f'Initialization of {self.agent_name} is completed. Node ID = {self.id}')
 
         self.nodes = []
         self.reward_period = regular_call_retry.call(self.skale.constants_holder.get_reward_period)

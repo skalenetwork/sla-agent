@@ -29,7 +29,7 @@ from tests.prepare_validator import (
     get_active_ids)
 from tools import db
 from configs import LONG_LINE
-from tools.helper import check_node_id, init_skale
+from tools.helper import check_if_node_is_registered, init_skale
 
 skale = init_skale()
 
@@ -64,10 +64,10 @@ def test_nodes_are_created():
     assert nodes_count_after == nodes_count_before + nodes_count_to_add
 
 
-def test_check_node_id():
-    assert check_node_id(skale, cur_node_id)
-    assert check_node_id(skale, cur_node_id + 1)
-    assert not check_node_id(skale, 100)
+def test_check_if_node_is_registered():
+    assert check_if_node_is_registered(skale, cur_node_id)
+    assert check_if_node_is_registered(skale, cur_node_id + 1)
+    assert not check_if_node_is_registered(skale, 100)
 
 
 def test_monitor_job_saves_data(monitor):
