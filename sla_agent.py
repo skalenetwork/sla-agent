@@ -117,20 +117,23 @@ class Monitor:
         downtimes = []
         for node in nodes_for_report:
             start_date = node['rep_date'] - self.reward_period
+            self.logger.info(f'Getting month metrics for node id = {node["id"]}:')
+            self.logger.info(f'Query start date: {datetime.utcfromtimestamp(start_date)}')
+            self.logger.info(f'Query end date: {datetime.utcfromtimestamp(node["rep_date"])}')
             try:
-                self.logger.info(f'Getting month metrics for node id = {node["id"]}:')
-                self.logger.info(f'Start date: {datetime.utcfromtimestamp(start_date)}')
-                self.logger.info(f'End date: {datetime.utcfromtimestamp(node["rep_date"])}')
+
                 metrics = db.get_month_metrics_for_node(self.id, node['id'],
                                                         datetime.utcfromtimestamp(start_date),
                                                         datetime.utcfromtimestamp(node['rep_date']))
+            except Exception as err:
+                self.logger.error(f'Failed to get month metrics from db for node id = '
+                                  f'{node["id"]}: {err}')
+                # TODO: Notify skale-admin
+            else:
                 self.logger.info(f'Epoch metrics for node id = {node["id"]}: {metrics}')
                 ids.append(node['id'])
                 downtimes.append(metrics['downtime'])
                 latencies.append(metrics['latency'])
-            except Exception as err:
-                self.logger.error(f'Failed getting month metrics from db: {err}')
-                self.logger.info(f'Report on node id = {node["id"]} cannot be sent!')
 
         if len(ids) == len(downtimes) == len(latencies) and len(ids) != 0:
             self.logger.info(f'+++ ids = {ids}, downtimes = {downtimes}, latencies = {latencies}')
@@ -172,6 +175,7 @@ class Monitor:
         except Exception as err:
             self.logger.exception(f'Failed to get list of monitored nodes. Error: {err}')
             self.logger.info('Monitoring nodes from previous job list')
+            # TODO: Notify skale-admin
 
         self.validate_nodes(skale, self.nodes)
 
