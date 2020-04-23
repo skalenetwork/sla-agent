@@ -188,7 +188,7 @@ class Monitor:
         self.logger.info('New report job started...')
         skale = spawn_skale_lib(self.skale)
 
-        self.nodes = skale.monitors_data.get_checked_array(self.id)
+        self.nodes = regular_call_retry.call(skale.monitors_data.get_checked_array, self.id)
         nodes_for_report = self.get_reported_nodes(skale, self.nodes)
 
         if len(nodes_for_report) > 0:
