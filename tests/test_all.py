@@ -30,6 +30,7 @@ from tests.prepare_validator import (
 from tools import db
 from configs import LONG_LINE
 from tools.helper import check_if_node_is_registered, init_skale
+from tools.exceptions import NodeNotFoundException
 
 skale = init_skale()
 
@@ -67,7 +68,8 @@ def test_nodes_are_created():
 def test_check_if_node_is_registered():
     assert check_if_node_is_registered(skale, cur_node_id)
     assert check_if_node_is_registered(skale, cur_node_id + 1)
-    assert not check_if_node_is_registered(skale, 100)
+    with pytest.raises(NodeNotFoundException):
+        check_if_node_is_registered(skale, 100)
 
 
 def test_monitor_job_saves_data(monitor):

@@ -79,6 +79,7 @@ def check_if_node_is_registered(skale, node_id):
         err_msg = f'There is no Node with ID = {node_id} in SKALE manager'
         logger.error(err_msg)
         raise NodeNotFoundException(err_msg)
+    return True
 
 
 @tenacity.retry(
