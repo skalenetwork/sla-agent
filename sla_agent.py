@@ -49,9 +49,9 @@ def run_threaded(job_func):
 class Monitor:
 
     def __init__(self, skale, node_id=None):
-        self.agent_name = self.__class__.__name__
+        self.agent_name = self.__class__.__name__.lower()
         init_agent_logger(self.agent_name, node_id)
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(self.agent_name)
 
         self.logger.info(f'Initialization of {self.agent_name} started...')
         if node_id is None:
