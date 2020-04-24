@@ -24,7 +24,9 @@ from skale.schain_config.ports_allocation import get_schain_base_port_on_node
 from web3 import HTTPProvider, Web3
 
 from configs import GOOD_IP, WATCHDOG_PORT, WATCHDOG_URL
-from tools.helper import logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_metrics_for_node(skale, node, is_test_mode):
@@ -32,7 +34,8 @@ def get_metrics_for_node(skale, node, is_test_mode):
     metrics = get_ping_node_results(host)
     if not is_test_mode:
         healthcheck = get_containers_healthcheck(host)
-        schains_check = check_schains_for_node(skale, node['id'], host)
+        # schains_check = check_schains_for_node(skale, node['id'], host)  # TODO Remove!!!
+        schains_check = 0
         metrics['is_offline'] = metrics['is_offline'] | healthcheck | schains_check
 
     logger.info(f'Received metrics from node ID = {node["id"]}: {metrics}')
@@ -85,9 +88,8 @@ def get_containers_healthcheck_url(host):
 def get_containers_healthcheck(host):
     """Return 0 if OK or 1 if failed."""
     url = get_containers_healthcheck_url(host)
-    logger.info(f'Checking: {url}')
     try:
-        response = requests.get(url, timeout=15)
+        response = requests.get(url)
     except requests.exceptions.ConnectionError as err:
         logger.info(f'Could not connect to {url}')
         logger.error(err)
@@ -98,7 +100,7 @@ def get_containers_healthcheck(host):
         return 1
 
     if response.status_code != requests.codes.ok:
-        logger.info(f'Request failed, status code: {response.status_code}')
+        logger.info(f'Request to {url} failed, status code: {response.status_code}')
         return 1
 
     res = response.json()
@@ -122,12 +124,13 @@ def get_ping_node_results(host) -> dict:
     ping_parser = pingparsing.PingParsing()
     transmitter = pingparsing.PingTransmitter()
     transmitter.destination_host = host
-    transmitter.ping_option = '-w1'
+    transmitter.ping_option = '-W1 -i 0.2'
     transmitter.count = 3
     result = transmitter.ping()
+    logger.debug(f'Ping {host} results: {result}')
     if ping_parser.parse(
             result).as_dict()['rtt_avg'] is None or ping_parser.parse(
-                result).as_dict()['packet_loss_count'] > 0:
+                result).as_dict()['packet_loss_count'] > 1:
         is_offline = True
         latency = -1
         logger.info('No connection to host!')

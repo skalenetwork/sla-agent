@@ -19,7 +19,8 @@
 
 from datetime import datetime
 
-from tools.helper import find_block_for_tx_stamp, init_skale
+from tools.helper import find_block_for_tx_stamp, init_skale, get_id_from_config
+from tools.config_storage import ConfigStorage
 
 
 def test_find_block_for_tx_stamp():
@@ -35,3 +36,12 @@ def test_find_block_for_tx_stamp():
     assert last_block_number >= 0
     assert last_block_number >= block_number
     assert datetime.strptime(block_timestamp, '%Y-%m-%d %H:%M:%S') <= utc_now
+
+
+def test_get_id_from_config():
+    config_file_name = 'test_node_config'
+    node_index = 1
+    config_node = ConfigStorage(config_file_name)
+    config_node.update({'node_id': node_index})
+    node_id = get_id_from_config(config_file_name)
+    assert node_id == node_index

@@ -51,11 +51,9 @@ def init_agent_logger(agent_name, node_id):
     init_logger(log_path)
 
 
-def get_log_filepath(agent_name, node_id):
-    if node_id is None:  # production
-        log_filename = agent_name.lower() + ".log"
-    else:  # test
-        log_filename = agent_name.lower() + '_' + str(node_id) + ".log"
-    log_filepath = os.path.join(LOG_FOLDER, log_filename)
+def get_log_filepath(file_name, node_id):
+    if node_id is not None:
+        file_name = f'{file_name}_{node_id}'
+    log_filename = f'{file_name}.log'
 
-    return log_filepath
+    return os.path.join(LOG_FOLDER, log_filename)
