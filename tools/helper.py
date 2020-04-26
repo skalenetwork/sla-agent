@@ -17,14 +17,16 @@
 #   You should have received a copy of the GNU Affero General Public License
 #   along with sla-agent.  If not, see <https://www.gnu.org/licenses/>.
 
+import json
 import logging
 import os
 from datetime import datetime
+
 import tenacity
 from skale import Skale
 from skale.utils.web3_utils import init_web3
 from skale.wallets import RPCWallet, Web3Wallet
-import json
+
 from configs import ENV
 from configs.web3 import ABI_FILEPATH, ENDPOINT
 from tools.exceptions import NodeNotFoundException

@@ -18,8 +18,8 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tools.helper import get_id_from_config
 from tools.config_storage import ConfigStorage
+from tools.helper import get_id_from_config
 
 
 def test_get_id_from_config():

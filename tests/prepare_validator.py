@@ -2,8 +2,7 @@ import os
 
 from tests.constants import (
     D_VALIDATOR_DESC, D_VALIDATOR_FEE, D_VALIDATOR_ID, D_VALIDATOR_MIN_DEL, D_VALIDATOR_NAME,
-    TEST_DELTA, TEST_EPOCH
-)
+    TEST_DELTA, TEST_EPOCH)
 from tools.helper import init_skale
 
 IP_BASE = '10.1.0.'

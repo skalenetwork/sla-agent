@@ -18,11 +18,11 @@
 #   along with sla-agent.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from peewee import BooleanField, CharField, DateTimeField, IntegerField, Model, \
-    MySQLDatabase, fn
+import logging
+
+from peewee import BooleanField, CharField, DateTimeField, IntegerField, Model, MySQLDatabase, fn
 
 from configs.db import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
-import logging
 
 logger = logging.getLogger(__name__)
 

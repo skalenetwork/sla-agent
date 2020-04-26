@@ -19,9 +19,9 @@
 
 import pytest
 
+from configs import NODE_CONFIG_FILEPATH
 from sla_agent import Monitor
 from tools.config_storage import ConfigStorage
-from configs import NODE_CONFIG_FILEPATH
 from tools.exceptions import NodeNotFoundException
 
 
