@@ -30,10 +30,6 @@ def setup_validator(skale):
         create_validator(skale)
         enable_validator(skale)
     set_test_msr(skale, msr=0)
-    skale.validator_service.link_node_address(
-        node_address=skale.wallet.address,
-        wait_for=True
-    )
     change_skale_manager_time_constants(skale)
 
 
