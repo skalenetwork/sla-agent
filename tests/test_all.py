@@ -23,14 +23,13 @@ from datetime import datetime
 import pytest
 
 import sla_agent as sla
+from configs import LONG_LINE
 from tests.constants import FAKE_IP, FAKE_REPORT_DATE, N_TEST_NODES
 from tests.prepare_validator import (
-    TEST_DELTA, TEST_EPOCH, create_dirs, create_set_of_nodes,
-    get_active_ids)
+    TEST_DELTA, TEST_EPOCH, create_dirs, create_set_of_nodes, get_active_ids)
 from tools import db
-from configs import LONG_LINE
-from tools.helper import check_if_node_is_registered, init_skale
 from tools.exceptions import NodeNotFoundException
+from tools.helper import check_if_node_is_registered, init_skale
 
 skale = init_skale()
 

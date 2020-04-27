@@ -22,23 +22,23 @@ SLA agent runs on every node of SKALE network, periodically gets a list of nodes
 from SKALE Manager (SM), checks its health metrics and sends transactions with average metrics to SM
 when it's time to send it
 """
+import logging
 import sys
 import threading
 import time
 from datetime import datetime
 
 import schedule
-from tools.helper import call_tx_retry, send_tx_retry, regular_call_retry
 from skale.manager_client import spawn_skale_lib
 
-from configs import GOOD_IP, LONG_DOUBLE_LINE, LONG_LINE, MONITOR_PERIOD, REPORT_PERIOD
+from configs import (
+    GOOD_IP, LONG_DOUBLE_LINE, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD)
 from tools import db
-from tools.helper import init_skale, get_id_from_config
-from tools.metrics import get_metrics_for_node, get_ping_node_results
-from configs import NODE_CONFIG_FILEPATH
-from tools.helper import check_if_node_is_registered
+from tools.helper import (
+    call_tx_retry, check_if_node_is_registered, get_id_from_config, init_skale, regular_call_retry,
+    send_tx_retry)
 from tools.logger import init_agent_logger
-import logging
+from tools.metrics import get_metrics_for_node, get_ping_node_results
 
 
 def run_threaded(job_func):

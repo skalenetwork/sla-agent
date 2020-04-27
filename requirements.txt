@@ -1,8 +1,7 @@
-skale-py==3.4.dev8
+skale-py==3.5.dev0
 docker==4.2.0
 pingparsing==1.0.2
 schedule==0.6.0
 tenacity==6.1.0
 peewee==3.13.2
 mysqlclient==1.4.6
-

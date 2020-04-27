@@ -2,8 +2,7 @@ import os
 
 from tests.constants import (
     D_VALIDATOR_DESC, D_VALIDATOR_FEE, D_VALIDATOR_ID, D_VALIDATOR_MIN_DEL, D_VALIDATOR_NAME,
-    TEST_DELTA, TEST_EPOCH
-)
+    TEST_DELTA, TEST_EPOCH)
 from tools.helper import init_skale
 
 IP_BASE = '10.1.0.'
@@ -30,10 +29,6 @@ def setup_validator(skale):
         create_validator(skale)
         enable_validator(skale)
     set_test_msr(skale, msr=0)
-    skale.validator_service.link_node_address(
-        node_address=skale.wallet.address,
-        wait_for=True
-    )
     change_skale_manager_time_constants(skale)
 
 

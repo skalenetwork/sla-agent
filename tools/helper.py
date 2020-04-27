@@ -17,14 +17,15 @@
 #   You should have received a copy of the GNU Affero General Public License
 #   along with sla-agent.  If not, see <https://www.gnu.org/licenses/>.
 
+import json
 import logging
 import os
-from datetime import datetime
+
 import tenacity
 from skale import Skale
 from skale.utils.web3_utils import init_web3
 from skale.wallets import RPCWallet, Web3Wallet
-import json
+
 from configs import ENV
 from configs.web3 import ABI_FILEPATH, ENDPOINT
 from tools.exceptions import NodeNotFoundException
@@ -52,26 +53,6 @@ def init_skale(node_id=None):
         web3 = init_web3(ENDPOINT)
         wallet = Web3Wallet(eth_private_key, web3)
     return Skale(ENDPOINT, ABI_FILEPATH, wallet)
-
-
-def find_block_for_tx_stamp(skale, tx_stamp, lo=0, hi=None):
-    """Return nearest block number to given transaction timestamp."""
-    count = 0
-    if hi is None:
-        hi = skale.web3.eth.blockNumber
-    while lo < hi:
-        mid = (lo + hi) // 2
-        block_data = skale.web3.eth.getBlock(mid)
-        midval = datetime.utcfromtimestamp(block_data['timestamp'])
-        if midval < tx_stamp:
-            lo = mid + 1
-        elif midval > tx_stamp:
-            hi = mid
-        else:
-            return mid
-        count += 1
-    print(f'Number of iterations = {count}')
-    return lo
 
 
 def check_if_node_is_registered(skale, node_id):
