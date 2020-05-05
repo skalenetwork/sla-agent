@@ -1,6 +1,6 @@
 skale-py==3.5.dev3
 docker==4.2.0
-pingparsing==1.0.2
+pingparsing==1.0.3
 schedule==0.6.0
 tenacity==6.2.0
 peewee==3.13.3
