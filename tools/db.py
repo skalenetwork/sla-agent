@@ -18,12 +18,13 @@
 #   along with sla-agent.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from peewee import BooleanField, CharField, DateTimeField, IntegerField, Model, \
-    MySQLDatabase, fn
+import logging
+
+from peewee import BooleanField, CharField, DateTimeField, IntegerField, Model, MySQLDatabase, fn
 
 from configs.db import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
 
-print(f'DB HOST = {DB_HOST}')
+logger = logging.getLogger(__name__)
 
 
 dbhandle = MySQLDatabase(
@@ -62,7 +63,7 @@ class ReportEvent(BaseModel):
 
 @dbhandle.connection_context()
 def save_metrics_to_db(my_id, target_id, is_offline, latency):
-    """ Save metrics (downtime and latency) to database"""
+    """Save metrics (downtime and latency) to database."""
     report = Report(my_id=my_id,
                     target_id=target_id,
                     is_offline=is_offline,
@@ -72,7 +73,7 @@ def save_metrics_to_db(my_id, target_id, is_offline, latency):
 
 @dbhandle.connection_context()
 def save_report_event(tx_dt, tx_hash, my_id, target_id, downtime, latency, gas_used):
-    """ Save bounty events data to database"""
+    """Save bounty events data to database."""
     data = ReportEvent(my_id=my_id,
                        target_id=target_id,
                        tx_dt=tx_dt,
@@ -86,7 +87,7 @@ def save_report_event(tx_dt, tx_hash, my_id, target_id, downtime, latency, gas_u
 
 @dbhandle.connection_context()
 def get_month_metrics_for_node(my_id, target_id, start_date, end_date) -> dict:
-    """ Returns a dict with aggregated month metrics - downtime and latency"""
+    """Returns a dict with aggregated month metrics - downtime and latency."""
 
     downtime_results = Report.select(
         fn.SUM(
@@ -104,8 +105,6 @@ def get_month_metrics_for_node(my_id, target_id, start_date, end_date) -> dict:
             Report.stamp >= start_date) & (
             Report.stamp <= end_date) & (
             Report.latency >= 0))
-    if downtime_results[0].sum is None:
-        print(f'Sum result from db is None')
     downtime = int(
         downtime_results[0].sum) if downtime_results[0].sum is not None else 0
     latency = latency_results[0].avg if latency_results[0].avg is not None else 0
@@ -115,9 +114,20 @@ def get_month_metrics_for_node(my_id, target_id, start_date, end_date) -> dict:
 @dbhandle.connection_context()
 def clear_all_reports():
     nrows = Report.delete().execute()
-    print(f'{nrows} records deleted')
+    logger.info(f'{nrows} records deleted')
+
+
+@dbhandle.connection_context()
+def clear_all_report_events():
+    nrows = ReportEvent.delete().execute()
+    logger.info(f'{nrows} records deleted')
 
 
 @dbhandle.connection_context()
 def get_count_of_report_records():
     return Report.select().count()
+
+
+@dbhandle.connection_context()
+def get_count_of_report_events_records():
+    return ReportEvent.select().count()

@@ -21,18 +21,15 @@ import time
 from datetime import datetime
 
 import pytest
-from skale.utils.web3_utils import TransactionFailedError
 
 import sla_agent as sla
+from configs import LONG_LINE
 from tests.constants import FAKE_IP, FAKE_REPORT_DATE, N_TEST_NODES
 from tests.prepare_validator import (
-    TEST_DELTA, TEST_EPOCH, create_dirs, create_set_of_nodes,
-    get_active_ids, init_skale
-)
+    TEST_DELTA, TEST_EPOCH, create_dirs, create_set_of_nodes, get_active_ids)
 from tools import db
-from tools.config_storage import ConfigStorage
-from configs import LONG_LINE
-from tools.helper import check_node_id
+from tools.exceptions import NodeNotFoundException
+from tools.helper import check_if_node_is_registered, init_skale
 
 skale = init_skale()
 
@@ -67,19 +64,27 @@ def test_nodes_are_created():
     assert nodes_count_after == nodes_count_before + nodes_count_to_add
 
 
-def test_check_node_id():
-    assert check_node_id(skale, cur_node_id)
-    assert check_node_id(skale, cur_node_id + 1)
-    assert not check_node_id(skale, 100)
+def test_check_if_node_is_registered():
+    assert check_if_node_is_registered(skale, cur_node_id)
+    assert check_if_node_is_registered(skale, cur_node_id + 1)
+    with pytest.raises(NodeNotFoundException):
+        check_if_node_is_registered(skale, 100)
+
+
+def test_monitor_job_saves_data(monitor):
+    db.clear_all_reports()
+    monitor.monitor_job()
+    assert db.get_count_of_report_records() == 1
 
 
 def test_send_reports_neg(monitor):
+    skale = monitor.skale
     print(f'--- Gas Price = {monitor.skale.web3.eth.gasPrice}')
     print(f'ETH balance of account : '
           f'{monitor.skale.web3.eth.getBalance(monitor.skale.wallet.address)}')
 
-    nodes = monitor.skale.monitors_data.get_checked_array(monitor.id)
-    reported_nodes = monitor.get_reported_nodes(nodes)
+    nodes = skale.monitors_data.get_checked_array(monitor.id)
+    reported_nodes = monitor.get_reported_nodes(skale, nodes)
     assert type(reported_nodes) is list
     print(f'\nrep nodes = {reported_nodes}')
     assert len(reported_nodes) == 0
@@ -88,24 +93,20 @@ def test_send_reports_neg(monitor):
     print(f'Report date: {datetime.utcfromtimestamp(nodes[0]["rep_date"])}')
     print(f'Now date: {datetime.utcnow()}')
 
-    fake_nodes = [{'id': 1, 'ip': FAKE_IP, 'rep_date': FAKE_REPORT_DATE}]
-    with pytest.raises(TransactionFailedError):
-        monitor.send_reports(fake_nodes)
-
-    fake_nodes = [{'id': 2, 'ip': FAKE_IP, 'rep_date': FAKE_REPORT_DATE}]
-    with pytest.raises(TransactionFailedError):
-        monitor.send_reports(fake_nodes)
+    fake_nodes = [{'id': 100, 'ip': FAKE_IP, 'rep_date': FAKE_REPORT_DATE}]
+    with pytest.raises(ValueError):
+        monitor.send_reports(skale, fake_nodes)
 
 
 def test_get_reported_nodes_pos(monitor):
-
+    skale = monitor.skale
     print(f'Sleep for {TEST_EPOCH - TEST_DELTA} sec')
     time.sleep(TEST_EPOCH - TEST_DELTA)
-    nodes = monitor.skale.monitors_data.get_checked_array(monitor.id)
+    nodes = skale.monitors_data.get_checked_array(monitor.id)
     print(LONG_LINE)
     print(f'report date: {datetime.utcfromtimestamp(nodes[0]["rep_date"])}')
     print(f'now: {datetime.utcnow()}')
-    reported_nodes = monitor.get_reported_nodes(nodes)
+    reported_nodes = monitor.get_reported_nodes(skale, nodes)
     assert type(reported_nodes) is list
     print(f'rep nodes = {reported_nodes}')
 
@@ -113,21 +114,22 @@ def test_get_reported_nodes_pos(monitor):
 
 
 def test_send_reports_pos(monitor):
-    print(f'--- Gas Price = {monitor.skale.web3.eth.gasPrice}')
+    print(f'--- Gas Price = {skale.web3.eth.gasPrice}')
     print(f'ETH balance of account : '
-          f'{monitor.skale.web3.eth.getBalance(skale.wallet.address)}')
+          f'{skale.web3.eth.getBalance(skale.wallet.address)}')
 
-    reported_nodes = monitor.get_reported_nodes(monitor.nodes)
+    reported_nodes = monitor.get_reported_nodes(skale, monitor.nodes)
     db.clear_all_reports()
-    assert monitor.send_reports(reported_nodes) == 0
-    # monitor.monitor_job()
-    # assert db.get_count_of_report_records() == 1
+    assert monitor.send_reports(skale, reported_nodes) == 0
 
 
-def test_get_id_from_config(monitor):
-    config_file_name = 'test_node_config'
-    node_index = 1
-    config_node = ConfigStorage(config_file_name)
-    config_node.update({'node_id': node_index})
-    node_id = monitor.get_id_from_config(config_file_name)
-    assert node_id == node_index
+def test_report_job_saves_data(monitor):
+    db.clear_all_report_events()
+    print(f'Sleep for {TEST_DELTA} sec')
+    time.sleep(TEST_DELTA)
+    tx_res = skale.manager.get_bounty(cur_node_id + 1, wait_for=True)
+    tx_res.raise_for_status()
+    print(f'Sleep for {TEST_EPOCH - TEST_DELTA} sec')
+    time.sleep(TEST_EPOCH - TEST_DELTA)
+    monitor.report_job()
+    assert db.get_count_of_report_events_records() == 1

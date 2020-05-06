@@ -17,60 +17,64 @@
 #   You should have received a copy of the GNU Affero General Public License
 #   along with sla-agent.  If not, see <https://www.gnu.org/licenses/>.
 
+import json
 import logging
 import os
-from datetime import datetime
 
+import tenacity
 from skale import Skale
 from skale.utils.web3_utils import init_web3
 from skale.wallets import RPCWallet, Web3Wallet
 
 from configs import ENV
 from configs.web3 import ABI_FILEPATH, ENDPOINT
+from tools.exceptions import NodeNotFoundException
 
 logger = logging.getLogger(__name__)
 
 
+call_tx_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(6),
+                                  wait=tenacity.wait_fixed(5),
+                                  reraise=True)
+
+send_tx_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(3),
+                                  wait=tenacity.wait_fixed(20),
+                                  reraise=True)
+regular_call_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(10),
+                                       wait=tenacity.wait_fixed(2),
+                                       reraise=True)
+
+
 def init_skale(node_id=None):
-    if node_id is None:
-        wallet = RPCWallet(os.environ['TM_URL']) if ENV != 'DEV' else None
+    if node_id is None and ENV != 'DEV':
+        wallet = RPCWallet(os.environ['TM_URL'])
     else:
-        ETH_PRIVATE_KEY = os.environ['ETH_PRIVATE_KEY']
+        eth_private_key = os.environ['ETH_PRIVATE_KEY']
         web3 = init_web3(ENDPOINT)
-        wallet = Web3Wallet(ETH_PRIVATE_KEY, web3)
+        wallet = Web3Wallet(eth_private_key, web3)
     return Skale(ENDPOINT, ABI_FILEPATH, wallet)
 
 
-def run_agent(args, agent_class):
-    if len(args) > 1 and args[1].isdecimal():
-        node_id = int(args[1])
-    else:
-        node_id = None
-
-    skale = init_skale(node_id)
-    agent = agent_class(skale, node_id)
-    agent.run()
+def check_if_node_is_registered(skale, node_id):
+    if node_id not in skale.nodes_data.get_active_node_ids():
+        err_msg = f'There is no Node with ID = {node_id} in SKALE manager'
+        logger.error(err_msg)
+        raise NodeNotFoundException(err_msg)
+    return True
 
 
-def find_block_for_tx_stamp(skale, tx_stamp, lo=0, hi=None):
-    """Return nearest block number to given transaction timestamp"""
-    count = 0
-    if hi is None:
-        hi = skale.web3.eth.blockNumber
-    while lo < hi:
-        mid = (lo + hi) // 2
-        block_data = skale.web3.eth.getBlock(mid)
-        midval = datetime.utcfromtimestamp(block_data['timestamp'])
-        if midval < tx_stamp:
-            lo = mid + 1
-        elif midval > tx_stamp:
-            hi = mid
-        else:
-            return mid
-        count += 1
-    print(f'Number of iterations = {count}')
-    return lo
-
-
-def check_node_id(skale, node_id):
-    return node_id in skale.nodes_data.get_active_node_ids()
+@tenacity.retry(
+    wait=tenacity.wait_fixed(20),
+    retry=tenacity.retry_if_exception_type(KeyError) | tenacity.retry_if_exception_type(
+        FileNotFoundError))
+def get_id_from_config(node_config_filepath) -> int:
+    """Gets node ID from config file for agent initialization."""
+    try:
+        logger.debug('Reading node id from config file...')
+        with open(node_config_filepath) as json_file:
+            data = json.load(json_file)
+        return data['node_id']
+    except (FileNotFoundError, KeyError) as err:
+        logger.warning(
+            f'Cannot read a node id from config file - is the node already registered?')
+        raise err

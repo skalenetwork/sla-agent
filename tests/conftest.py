@@ -1,12 +1,11 @@
 """ SKALE config test """
 
 import pytest
-
 from skale import Skale
-from skale.wallets import Web3Wallet
 from skale.utils.web3_utils import init_web3
+from skale.wallets import Web3Wallet
 
-from tests.constants import ENDPOINT, TEST_ABI_FILEPATH, ETH_PRIVATE_KEY
+from tests.constants import ENDPOINT, ETH_PRIVATE_KEY, TEST_ABI_FILEPATH
 
 
 @pytest.fixture
