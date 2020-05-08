@@ -33,9 +33,9 @@ from tools.exceptions import NodeNotFoundException
 logger = logging.getLogger(__name__)
 
 
-regular_call_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(10),
-                                       wait=tenacity.wait_fixed(2),
-                                       reraise=True)
+call_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(10),
+                               wait=tenacity.wait_fixed(2),
+                               reraise=True)
 
 
 def init_skale(node_id=None):

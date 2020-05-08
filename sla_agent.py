@@ -35,7 +35,7 @@ from configs import (
     GOOD_IP, LONG_DOUBLE_LINE, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD)
 from tools import db
 from tools.helper import (
-    check_if_node_is_registered, get_id_from_config, init_skale, regular_call_retry)
+    check_if_node_is_registered, get_id_from_config, init_skale, call_retry)
 from tools.logger import init_agent_logger
 from tools.metrics import get_metrics_for_node, get_ping_node_results
 
@@ -65,7 +65,7 @@ class Monitor:
         self.logger.info(f'Initialization of {self.agent_name} is completed. Node ID = {self.id}')
 
         self.nodes = []
-        self.reward_period = regular_call_retry.call(self.skale.constants_holder.get_reward_period)
+        self.reward_period = call_retry.call(self.skale.constants_holder.get_reward_period)
 
     def validate_nodes(self, skale, nodes):
         """Validate nodes and returns a list of nodes to be reported."""
@@ -93,7 +93,7 @@ class Monitor:
     def get_reported_nodes(self, skale, nodes) -> list:
         """Returns a list of nodes to be reported."""
         last_block_number = skale.web3.eth.blockNumber
-        block_data = regular_call_retry.call(skale.web3.eth.getBlock, last_block_number)
+        block_data = call_retry.call(skale.web3.eth.getBlock, last_block_number)
         block_timestamp = datetime.utcfromtimestamp(block_data['timestamp'])
         self.logger.info(f'Timestamp of current block: {block_timestamp}')
 
@@ -163,7 +163,7 @@ class Monitor:
         self.logger.info('New monitor job started...')
         skale = spawn_skale_lib(self.skale)
         try:
-            self.nodes = regular_call_retry.call(skale.monitors_data.get_checked_array, self.id)
+            self.nodes = call_retry.call(skale.monitors_data.get_checked_array, self.id)
         except Exception as err:
             self.logger.exception(f'Failed to get list of monitored nodes. Error: {err}')
             self.logger.info('Monitoring nodes from previous job list')
@@ -180,7 +180,7 @@ class Monitor:
         self.logger.info('New report job started...')
         skale = spawn_skale_lib(self.skale)
 
-        self.nodes = regular_call_retry.call(skale.monitors_data.get_checked_array, self.id)
+        self.nodes = call_retry.call(skale.monitors_data.get_checked_array, self.id)
         nodes_for_report = self.get_reported_nodes(skale, self.nodes)
 
         if len(nodes_for_report) > 0:
