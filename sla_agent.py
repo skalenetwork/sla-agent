@@ -35,8 +35,7 @@ from configs import (
     GOOD_IP, LONG_DOUBLE_LINE, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD)
 from tools import db
 from tools.helper import (
-    call_tx_retry, check_if_node_is_registered, get_id_from_config, init_skale, regular_call_retry,
-    send_tx_retry)
+    check_if_node_is_registered, get_id_from_config, init_skale, regular_call_retry)
 from tools.logger import init_agent_logger
 from tools.metrics import get_metrics_for_node, get_ping_node_results
 
@@ -138,15 +137,7 @@ class Monitor:
 
         if len(ids) == len(downtimes) == len(latencies) and len(ids) != 0:
             self.logger.info(f'+++ ids = {ids}, downtimes = {downtimes}, latencies = {latencies}')
-
-            # Try dry-run (call transaction)
-            call_tx_retry.call(skale.manager.send_verdicts,
-                               self.id, ids, downtimes, latencies, dry_run=True)
-            # Send transaction
-            tx_res = send_tx_retry.call(skale.manager.send_verdicts,
-                                        self.id, ids, downtimes, latencies, wait_for=True)
-            tx_res.raise_for_status()
-
+            tx_res = skale.manager.send_verdicts(self.id, ids, downtimes, latencies)
             tx_hash = tx_res.receipt['transactionHash'].hex()
             self.logger.info('The report was successfully sent')
             h_receipt = skale.monitors.contract.events.VerdictWasSent(

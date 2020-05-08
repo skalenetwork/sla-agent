@@ -33,13 +33,6 @@ from tools.exceptions import NodeNotFoundException
 logger = logging.getLogger(__name__)
 
 
-call_tx_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(6),
-                                  wait=tenacity.wait_fixed(5),
-                                  reraise=True)
-
-send_tx_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(3),
-                                  wait=tenacity.wait_fixed(20),
-                                  reraise=True)
 regular_call_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(10),
                                        wait=tenacity.wait_fixed(2),
                                        reraise=True)
