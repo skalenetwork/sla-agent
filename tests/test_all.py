@@ -30,6 +30,7 @@ from tests.prepare_validator import (
 from tools import db
 from tools.exceptions import NodeNotFoundException
 from tools.helper import check_if_node_is_registered, init_skale
+from skale.dataclasses.tx_res import TransactionFailedError
 
 skale = init_skale()
 
@@ -94,7 +95,7 @@ def test_send_reports_neg(monitor):
     print(f'Now date: {datetime.utcnow()}')
 
     fake_nodes = [{'id': 100, 'ip': FAKE_IP, 'rep_date': FAKE_REPORT_DATE}]
-    with pytest.raises(ValueError):
+    with pytest.raises(TransactionFailedError):
         monitor.send_reports(skale, fake_nodes)
 
 
