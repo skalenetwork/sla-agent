@@ -125,12 +125,10 @@ def test_send_reports_pos(monitor):
 
 
 def test_report_job_saves_data(monitor):
-    db.clear_all_report_events()
     print(f'Sleep for {TEST_DELTA} sec')
     time.sleep(TEST_DELTA)
     tx_res = skale.manager.get_bounty(cur_node_id + 1, wait_for=True)
     tx_res.raise_for_status()
     print(f'Sleep for {TEST_EPOCH - TEST_DELTA} sec')
     time.sleep(TEST_EPOCH - TEST_DELTA)
-    monitor.report_job()
-    assert db.get_count_of_report_events_records() == 1
+    assert monitor.report_job()
