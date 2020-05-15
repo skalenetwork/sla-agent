@@ -32,7 +32,7 @@ import schedule
 from skale.manager_client import spawn_skale_lib
 
 from configs import (
-    GOOD_IP, LONG_DOUBLE_LINE, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD)
+    GOOD_IP, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD)
 from tools import db
 from tools.helper import (
     check_if_node_is_registered, get_id_from_config, init_skale, call_retry)
@@ -51,6 +51,10 @@ class Monitor:
         self.agent_name = self.__class__.__name__.lower()
         init_agent_logger(self.agent_name, node_id)
         self.logger = logging.getLogger(self.agent_name)
+
+        # Hide skale init log output
+        init_skale_logger = logging.getLogger('skale.manager_client')
+        init_skale_logger.setLevel(logging.WARNING)
 
         self.logger.info(f'Initialization of {self.agent_name} started...')
         if node_id is None:
@@ -111,10 +115,7 @@ class Monitor:
         """Send reports for every node from nodes_for_report."""
         self.logger.info(LONG_LINE)
         err_status = 0
-
-        ids = []
-        latencies = []
-        downtimes = []
+        verdicts = []
         for node in nodes_for_report:
             start_date = node['rep_date'] - self.reward_period
             self.logger.info(f'Getting month metrics for node id = {node["id"]}:')
@@ -131,29 +132,13 @@ class Monitor:
                 # TODO: Notify skale-admin
             else:
                 self.logger.info(f'Epoch metrics for node id = {node["id"]}: {metrics}')
-                ids.append(node['id'])
-                downtimes.append(metrics['downtime'])
-                latencies.append(metrics['latency'])
+                verdict = (node['id'], metrics['downtime'], metrics['latency'])
+                verdicts.append(verdict)
 
-        if len(ids) == len(downtimes) == len(latencies) and len(ids) != 0:
-            self.logger.info(f'+++ ids = {ids}, downtimes = {downtimes}, latencies = {latencies}')
-            tx_res = skale.manager.send_verdicts(self.id, ids, downtimes, latencies)
-            tx_hash = tx_res.receipt['transactionHash'].hex()
+        if len(verdicts) != 0:
+            tx_res = skale.manager.send_verdicts(self.id, verdicts)
             self.logger.info('The report was successfully sent')
-            h_receipt = skale.monitors.contract.events.VerdictWasSent(
-            ).processReceipt(tx_res.receipt)
-            self.logger.info(LONG_LINE)
-            self.logger.info(h_receipt)
-            args = h_receipt[0]['args']
-            try:
-                db.save_report_event(datetime.utcfromtimestamp(args['time']),
-                                     str(tx_hash), args['fromMonitorIndex'],
-                                     args['toNodeIndex'], args['downtime'],
-                                     args['latency'], tx_res.receipt["gasUsed"])
-            except Exception as err:
-                self.logger.exception(f'Failed to save report event data. {err}')
-            self.logger.debug(f'Receipt: {tx_res.receipt}')
-            self.logger.info(LONG_DOUBLE_LINE)
+            self.logger.info(f'Tx hash: {tx_res.receipt}')
         return err_status
 
     def monitor_job(self) -> None:
@@ -173,7 +158,7 @@ class Monitor:
 
         self.logger.info('Monitor job finished...')
 
-    def report_job(self) -> None:
+    def report_job(self) -> bool:
         """
         Periodic job for sending reports.
         """
@@ -190,6 +175,7 @@ class Monitor:
             self.logger.info(f'- No nodes to be reported on')
 
         self.logger.info('Report job finished...')
+        return True
 
     def run(self) -> None:
         """Starts sla agent."""
