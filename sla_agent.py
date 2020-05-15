@@ -32,7 +32,7 @@ import schedule
 from skale.manager_client import spawn_skale_lib
 
 from configs import (
-    GOOD_IP, LONG_DOUBLE_LINE, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD)
+    GOOD_IP, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD)
 from tools import db
 from tools.helper import (
     check_if_node_is_registered, get_id_from_config, init_skale, call_retry)
@@ -112,10 +112,12 @@ class Monitor:
         self.logger.info(LONG_LINE)
         err_status = 0
 
-        ids = []
-        latencies = []
-        downtimes = []
+        # ids = []
+        # latencies = []
+        # downtimes = []
+        verdicts = []
         for node in nodes_for_report:
+            # verdict = []
             start_date = node['rep_date'] - self.reward_period
             self.logger.info(f'Getting month metrics for node id = {node["id"]}:')
             self.logger.info(f'Query start date: {datetime.utcfromtimestamp(start_date)}')
@@ -131,29 +133,35 @@ class Monitor:
                 # TODO: Notify skale-admin
             else:
                 self.logger.info(f'Epoch metrics for node id = {node["id"]}: {metrics}')
-                ids.append(node['id'])
-                downtimes.append(metrics['downtime'])
-                latencies.append(metrics['latency'])
+                verdict = (node['id'], metrics['downtime'], metrics['latency'])
+                verdicts.append(verdict)
+                # ids.append(node['id'])
+                # downtimes.append(metrics['downtime'])
+                # latencies.append(metrics['latency'])
 
-        if len(ids) == len(downtimes) == len(latencies) and len(ids) != 0:
-            self.logger.info(f'+++ ids = {ids}, downtimes = {downtimes}, latencies = {latencies}')
-            tx_res = skale.manager.send_verdicts(self.id, ids, downtimes, latencies)
-            tx_hash = tx_res.receipt['transactionHash'].hex()
+        # if len(ids) == len(downtimes) == len(latencies) and len(ids) != 0:
+        if len(verdicts) != 0:
+            # self.logger.info(f'+++ ids = {ids}, downtimes = {downtimes}, latencies = {latencies}')
+            # tx_res = skale.manager.send_verdicts(self.id, ids, downtimes, latencies)
+            print(f'verdicts: {self.id}, {verdicts} ')
+            skale.manager.send_verdicts(self.id, verdicts)
+            # tx_hash = tx_res.receipt['transactionHash'].hex()
+
             self.logger.info('The report was successfully sent')
-            h_receipt = skale.monitors.contract.events.VerdictWasSent(
-            ).processReceipt(tx_res.receipt)
-            self.logger.info(LONG_LINE)
-            self.logger.info(h_receipt)
-            args = h_receipt[0]['args']
-            try:
-                db.save_report_event(datetime.utcfromtimestamp(args['time']),
-                                     str(tx_hash), args['fromMonitorIndex'],
-                                     args['toNodeIndex'], args['downtime'],
-                                     args['latency'], tx_res.receipt["gasUsed"])
-            except Exception as err:
-                self.logger.exception(f'Failed to save report event data. {err}')
-            self.logger.debug(f'Receipt: {tx_res.receipt}')
-            self.logger.info(LONG_DOUBLE_LINE)
+            # h_receipt = skale.monitors.contract.events.VerdictWasSent(
+            # ).processReceipt(tx_res.receipt)
+            # self.logger.info(LONG_LINE)
+            # self.logger.info(h_receipt)
+            # args = h_receipt[0]['args']
+            # try:
+            #     db.save_report_event(datetime.utcfromtimestamp(args['time']),
+            #                          str(tx_hash), args['fromMonitorIndex'],
+            #                          args['toNodeIndex'], args['downtime'],
+            #                          args['latency'], tx_res.receipt["gasUsed"])
+            # except Exception as err:
+            #     self.logger.exception(f'Failed to save report event data. {err}')
+            # self.logger.debug(f'Receipt: {tx_res.receipt}')
+            # self.logger.info(LONG_DOUBLE_LINE)
         return err_status
 
     def monitor_job(self) -> None:
