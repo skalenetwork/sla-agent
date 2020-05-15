@@ -115,13 +115,8 @@ class Monitor:
         """Send reports for every node from nodes_for_report."""
         self.logger.info(LONG_LINE)
         err_status = 0
-
-        # ids = []
-        # latencies = []
-        # downtimes = []
         verdicts = []
         for node in nodes_for_report:
-            # verdict = []
             start_date = node['rep_date'] - self.reward_period
             self.logger.info(f'Getting month metrics for node id = {node["id"]}:')
             self.logger.info(f'Query start date: {datetime.utcfromtimestamp(start_date)}')
@@ -139,36 +134,11 @@ class Monitor:
                 self.logger.info(f'Epoch metrics for node id = {node["id"]}: {metrics}')
                 verdict = (node['id'], metrics['downtime'], metrics['latency'])
                 verdicts.append(verdict)
-                # ids.append(node['id'])
-                # downtimes.append(metrics['downtime'])
-                # latencies.append(metrics['latency'])
 
-        # if len(ids) == len(downtimes) == len(latencies) and len(ids) != 0:
         if len(verdicts) != 0:
-            # self.logger.info(f'+++ ids = {ids}, downtimes = {downtimes}, latencies = {latencies}')
-            # tx_res = skale.manager.send_verdicts(self.id, ids, downtimes, latencies)
-            print(f'verdicts: {self.id}, {verdicts} ')
             tx_res = skale.manager.send_verdicts(self.id, verdicts)
-            # tx_hash = tx_res.receipt['transactionHash'].hex()
-
             self.logger.info('The report was successfully sent')
             self.logger.info(f'Tx hash: {tx_res.receipt}')
-            # self.logger.info(f'Tx hash: {tx_hash}')
-
-            # h_receipt = skale.monitors.contract.events.VerdictWasSent(
-            # ).processReceipt(tx_res.receipt)
-            # self.logger.info(LONG_LINE)
-            # self.logger.info(h_receipt)
-            # args = h_receipt[0]['args']
-            # try:
-            #     db.save_report_event(datetime.utcfromtimestamp(args['time']),
-            #                          str(tx_hash), args['fromMonitorIndex'],
-            #                          args['toNodeIndex'], args['downtime'],
-            #                          args['latency'], tx_res.receipt["gasUsed"])
-            # except Exception as err:
-            #     self.logger.exception(f'Failed to save report event data. {err}')
-            # self.logger.debug(f'Receipt: {tx_res.receipt}')
-            # self.logger.info(LONG_DOUBLE_LINE)
         return err_status
 
     def monitor_job(self) -> None:
@@ -188,7 +158,7 @@ class Monitor:
 
         self.logger.info('Monitor job finished...')
 
-    def report_job(self) -> None:
+    def report_job(self) -> bool:
         """
         Periodic job for sending reports.
         """
@@ -205,6 +175,7 @@ class Monitor:
             self.logger.info(f'- No nodes to be reported on')
 
         self.logger.info('Report job finished...')
+        return True
 
     def run(self) -> None:
         """Starts sla agent."""
