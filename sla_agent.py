@@ -52,6 +52,10 @@ class Monitor:
         init_agent_logger(self.agent_name, node_id)
         self.logger = logging.getLogger(self.agent_name)
 
+        # Hide skale init log output
+        init_skale_logger = logging.getLogger('skale.manager_client')
+        init_skale_logger.setLevel(logging.WARNING)
+
         self.logger.info(f'Initialization of {self.agent_name} started...')
         if node_id is None:
             self.id = get_id_from_config(NODE_CONFIG_FILEPATH)
@@ -144,10 +148,13 @@ class Monitor:
             # self.logger.info(f'+++ ids = {ids}, downtimes = {downtimes}, latencies = {latencies}')
             # tx_res = skale.manager.send_verdicts(self.id, ids, downtimes, latencies)
             print(f'verdicts: {self.id}, {verdicts} ')
-            skale.manager.send_verdicts(self.id, verdicts)
+            tx_res = skale.manager.send_verdicts(self.id, verdicts)
             # tx_hash = tx_res.receipt['transactionHash'].hex()
 
             self.logger.info('The report was successfully sent')
+            self.logger.info(f'Tx hash: {tx_res.receipt}')
+            # self.logger.info(f'Tx hash: {tx_hash}')
+
             # h_receipt = skale.monitors.contract.events.VerdictWasSent(
             # ).processReceipt(tx_res.receipt)
             # self.logger.info(LONG_LINE)
