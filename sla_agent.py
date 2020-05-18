@@ -75,7 +75,7 @@ class Monitor:
         """Validate nodes and returns a list of nodes to be reported."""
         self.logger.info(LONG_LINE)
         if len(nodes) == 0:
-            self.logger.info(f'No nodes for monitoring')
+            self.logger.info('No nodes for monitoring')
         else:
             self.logger.info(f'Number of nodes for monitoring: {len(nodes)}')
             self.logger.info(f'Nodes for monitoring : {nodes}')
@@ -172,7 +172,7 @@ class Monitor:
             self.logger.info(f'Nodes for report ({len(nodes_for_report)}): {nodes_for_report}')
             self.send_reports(skale, nodes_for_report)
         else:
-            self.logger.info(f'- No nodes to be reported on')
+            self.logger.info('No nodes to be reported on')
 
         self.logger.info('Report job finished...')
         return True
