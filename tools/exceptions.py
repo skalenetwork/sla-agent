@@ -21,10 +21,10 @@
 class NodeNotFoundException(Exception):
     """Raised when Node ID doesn't exist in SKALE Manager."""
 
-    pass
-
 
 class TxCallFailedException(Exception):
     """Raised when sendVerdict transaction call (dry-run) failed."""
 
-    pass
+
+class NotEnoughEthForTxException(Exception):
+    """Raised when a wallet balance is too low to send a transaction."""
