@@ -1,5 +1,7 @@
 import os
 
+from skale.utils.constants import GAS
+
 ENV = os.environ.get('ENV')
 
 LONG_LINE = '-' * 100
@@ -19,6 +21,9 @@ MONITOR_PERIOD = 2
 REPORT_PERIOD = 5
 BLOCK_STEP_SIZE = 2000
 MISFIRE_GRACE_TIME = 365 * 24 * 60 * 60
+MIN_ETH_AMOUNT_IN_SKL = 0.01
+MIN_ETH_AMOUNT = int(MIN_ETH_AMOUNT_IN_SKL * (10 ** 18))
+GAS_LIMIT = GAS['get_bounty']
 
 WATCHDOG_URL = 'status/core'
 WATCHDOG_PORT = '3009'
