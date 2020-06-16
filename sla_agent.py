@@ -34,7 +34,7 @@ from configs import (
     GOOD_IP, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD)
 from tools import db
 from tools.helper import (
-    check_if_node_is_registered, get_id_from_config, init_skale, call_retry)
+    check_if_node_is_registered, get_id_from_config, init_skale, call_retry, check_required_balance)
 from tools.logger import init_agent_logger
 from tools.metrics import get_metrics_for_node, get_ping_node_results
 
@@ -169,9 +169,10 @@ class Monitor:
 
         if len(nodes_for_report) > 0:
             self.logger.info(f'Nodes for report ({len(nodes_for_report)}): {nodes_for_report}')
+            check_required_balance(self.skale)
             self.send_reports(skale, nodes_for_report)
         else:
-            self.logger.info('No nodes to be reported on')
+            self.logger.info('- No nodes to be reported on')
 
         self.logger.info('Report job finished...')
         return True
