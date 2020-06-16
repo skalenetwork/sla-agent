@@ -1,20 +1,16 @@
 """ SKALE config test """
 
 import pytest
-from skale import Skale
-from skale.utils.web3_utils import init_web3
-from skale.wallets import Web3Wallet
 
-from tests.constants import ENDPOINT, ETH_PRIVATE_KEY, N_TEST_NODES, TEST_ABI_FILEPATH
-from tests.prepare_validator import create_dirs, create_set_of_nodes, get_active_ids
+from tests.constants import N_TEST_NODES
+from tests.prepare_validator import (
+    create_dirs, create_set_of_nodes, get_active_ids, init_skale_with_w3_wallet)
 
 
 @pytest.fixture(scope="session")
 def skale():
     """Returns a SKALE instance with provider from config"""
-    web3 = init_web3(ENDPOINT)
-    wallet = Web3Wallet(ETH_PRIVATE_KEY, web3)
-    skale = Skale(ENDPOINT, TEST_ABI_FILEPATH, wallet)
+    skale = init_skale_with_w3_wallet()
 
     create_dirs()
     ids = get_active_ids(skale)

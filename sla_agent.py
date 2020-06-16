@@ -172,7 +172,7 @@ class Monitor:
             check_required_balance(self.skale)
             self.send_reports(skale, nodes_for_report)
         else:
-            self.logger.info('- No nodes to be reported on')
+            self.logger.info('No nodes to be reported on')
 
         self.logger.info('Report job finished...')
         return True
@@ -193,6 +193,3 @@ if __name__ == '__main__':
     skale = init_skale()
     monitor = Monitor(skale)
     monitor.run()
-    while not monitor:
-        time.sleep(1)
-        pass
