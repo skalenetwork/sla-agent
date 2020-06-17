@@ -23,7 +23,6 @@ from SKALE Manager (SM), checks its health metrics and sends transactions with a
 when it's time to send it
 """
 import logging
-import sys
 import threading
 import time
 from datetime import datetime
@@ -173,7 +172,7 @@ class Monitor:
             check_required_balance(self.skale)
             self.send_reports(skale, nodes_for_report)
         else:
-            self.logger.info('- No nodes to be reported on')
+            self.logger.info('No nodes to be reported on')
 
         self.logger.info('Report job finished...')
         return True
@@ -191,12 +190,6 @@ class Monitor:
 
 
 if __name__ == '__main__':
-
-    if len(sys.argv) > 1 and sys.argv[1].isdecimal():
-        node_id = int(sys.argv[1])
-    else:
-        node_id = None
-
-    skale = init_skale(node_id)
-    monitor = Monitor(skale, node_id)
+    skale = init_skale()
+    monitor = Monitor(skale)
     monitor.run()
