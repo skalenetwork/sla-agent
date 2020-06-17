@@ -21,11 +21,12 @@ import json
 import logging
 import os
 
+import requests
 import tenacity
 from skale import Skale
 from skale.wallets import RPCWallet
 
-from configs import GAS_LIMIT, MIN_ETH_AMOUNT
+from configs import GAS_LIMIT, MIN_ETH_AMOUNT, NOTIFIER_URL
 from configs.web3 import ABI_FILEPATH, ENDPOINT
 from tools.exceptions import NodeNotFoundException, NotEnoughEthForTxException
 
@@ -78,3 +79,29 @@ def get_id_from_config(node_config_filepath) -> int:
         logger.warning(
             'Cannot read a node id from config file - is the node already registered?')
         raise err
+
+
+def notify_validator(message):
+    """Send message to telegram."""
+    message_data = {"message": message}
+    try:
+        response = requests.post(url=NOTIFIER_URL, data=message_data)
+    except requests.exceptions.ConnectionError as err:
+        logger.info(f'Could not connect to {NOTIFIER_URL}')
+        logger.error(err)
+        return 1
+    except Exception as err:
+        logger.info(f'Cannot notify validator {NOTIFIER_URL}')
+        logger.error(err)
+        return 1
+
+    if response.status_code != requests.codes.ok:
+        logger.info(f'Request to {NOTIFIER_URL} failed, status code: {response.status_code}')
+        return 1
+
+    res = response.json()
+    if res.get('status') == 'error':
+        logger.info(f"Cannot notify validator: {res['payload']}")
+        return 1
+    logger.debug('Message to validator was sent successfully')
+    return 0
