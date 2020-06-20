@@ -147,7 +147,7 @@ class Monitor:
         self.logger.info('New monitor job started...')
         skale = spawn_skale_lib(self.skale)
         try:
-            self.nodes = call_retry.call(skale.monitors_data.get_checked_array, self.id)
+            self.nodes = call_retry.call(skale.monitors.get_checked_array, self.id)
         except Exception as err:
             self.logger.exception(f'Failed to get list of monitored nodes. Error: {err}')
             self.logger.info('Monitoring nodes from previous job list')
@@ -164,7 +164,7 @@ class Monitor:
         self.logger.info('New report job started...')
         skale = spawn_skale_lib(self.skale)
 
-        self.nodes = call_retry.call(skale.monitors_data.get_checked_array, self.id)
+        self.nodes = call_retry.call(skale.monitors.get_checked_array, self.id)
         nodes_for_report = self.get_reported_nodes(skale, self.nodes)
 
         if len(nodes_for_report) > 0:

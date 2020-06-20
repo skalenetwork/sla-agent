@@ -80,7 +80,7 @@ def create_node(skale, node_id):
 
 
 def get_active_ids(skale):
-    return skale.nodes_data.get_active_node_ids()
+    return skale.nodes.get_active_node_ids()
 
 
 def create_set_of_nodes(skale, first_node_id, nodes_number=2):

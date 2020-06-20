@@ -30,7 +30,7 @@ from tests.prepare_validator import (
 from tools import db
 from tools.exceptions import NodeNotFoundException
 from tools.helper import check_if_node_is_registered
-from skale.dataclasses.tx_res import TransactionFailedError
+from skale.transactions.result import TransactionError
 
 
 @pytest.fixture(scope="module")
@@ -62,7 +62,7 @@ def test_send_reports_neg(skale, monitor):
     print(f'ETH balance of account : '
           f'{monitor.skale.web3.eth.getBalance(monitor.skale.wallet.address)}')
 
-    nodes = skale.monitors_data.get_checked_array(monitor.id)
+    nodes = skale.monitors.get_checked_array(monitor.id)
     reported_nodes = monitor.get_reported_nodes(skale, nodes)
     assert type(reported_nodes) is list
     print(f'\nrep nodes = {reported_nodes}')
@@ -73,14 +73,14 @@ def test_send_reports_neg(skale, monitor):
     print(f'Now date: {datetime.utcnow()}')
 
     fake_nodes = [{'id': 100, 'ip': FAKE_IP, 'rep_date': FAKE_REPORT_DATE}]
-    with pytest.raises(TransactionFailedError):
+    with pytest.raises(TransactionError):
         monitor.send_reports(skale, fake_nodes)
 
 
 def test_get_reported_nodes_pos(skale, monitor, cur_node_id):
     print(f'Sleep for {TEST_EPOCH - TEST_DELTA} sec')
     time.sleep(TEST_EPOCH - TEST_DELTA)
-    nodes = skale.monitors_data.get_checked_array(monitor.id)
+    nodes = skale.monitors.get_checked_array(monitor.id)
     print(LONG_LINE)
     print(f'report date: {datetime.utcfromtimestamp(nodes[0]["rep_date"])}')
     print(f'now: {datetime.utcnow()}')
