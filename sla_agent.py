@@ -23,19 +23,19 @@ from SKALE Manager (SM), checks its health metrics and sends transactions with a
 when it's time to send it
 """
 import logging
+import socket
 import threading
 import time
 from datetime import datetime
-import socket
+
 import schedule
+from configs import GOOD_IP, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD
 from skale.manager_client import spawn_skale_lib
 from skale.transactions.result import TransactionError
-from configs import (
-    GOOD_IP, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD)
 from tools import db
 from tools.helper import (
-    check_if_node_is_registered, get_id_from_config, init_skale, call_retry, check_required_balance,
-    Notifier)
+    Notifier, call_retry, check_if_node_is_registered, check_required_balance, get_id_from_config,
+    init_skale)
 from tools.logger import init_agent_logger
 from tools.metrics import get_metrics_for_node, get_ping_node_results
 

@@ -21,11 +21,10 @@ import logging
 
 import pingparsing
 import requests
+from configs import GOOD_IP, WATCHDOG_PORT, WATCHDOG_URL
 from skale.dataclasses.skaled_ports import SkaledPorts
 from skale.schain_config.ports_allocation import get_schain_base_port_on_node
 from web3 import HTTPProvider, Web3
-
-from configs import GOOD_IP, WATCHDOG_PORT, WATCHDOG_URL
 
 logger = logging.getLogger(__name__)
 

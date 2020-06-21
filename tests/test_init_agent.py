@@ -18,8 +18,8 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import json
-import pytest
 
+import pytest
 from configs import NODE_CONFIG_FILEPATH
 from sla_agent import Monitor
 from tools.exceptions import NodeNotFoundException

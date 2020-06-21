@@ -20,7 +20,6 @@
 from unittest import mock
 
 import requests
-
 from configs import WATCHDOG_PORT, WATCHDOG_URL
 from tools.metrics import get_containers_healthcheck
 

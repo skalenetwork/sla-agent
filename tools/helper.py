@@ -23,11 +23,10 @@ import os
 
 import requests
 import tenacity
-from skale import Skale
-from skale.wallets import RPCWallet
-
 from configs import MIN_ETH_AMOUNT, NOTIFIER_URL
 from configs.web3 import ABI_FILEPATH, ENDPOINT
+from skale import Skale
+from skale.wallets import RPCWallet
 from tools.exceptions import NodeNotFoundException
 
 DEBUG = True

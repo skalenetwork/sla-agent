@@ -21,16 +21,14 @@ import time
 from datetime import datetime
 
 import pytest
-
 import sla_agent as sla
 from configs import LONG_LINE
+from skale.transactions.result import TransactionError
 from tests.constants import FAKE_IP, FAKE_REPORT_DATE
-from tests.prepare_validator import (
-    TEST_DELTA, TEST_EPOCH, get_active_ids)
+from tests.prepare_validator import TEST_DELTA, TEST_EPOCH, get_active_ids
 from tools import db
 from tools.exceptions import NodeNotFoundException
 from tools.helper import check_if_node_is_registered
-from skale.transactions.result import TransactionError
 
 
 @pytest.fixture(scope="module")
