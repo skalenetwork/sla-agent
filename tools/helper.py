@@ -26,9 +26,11 @@ import tenacity
 from skale import Skale
 from skale.wallets import RPCWallet
 
-from configs import GAS_LIMIT, MIN_ETH_AMOUNT, NOTIFIER_URL
+from configs import MIN_ETH_AMOUNT, NOTIFIER_URL
 from configs.web3 import ABI_FILEPATH, ENDPOINT
-from tools.exceptions import NodeNotFoundException, NotEnoughEthForTxException
+from tools.exceptions import NodeNotFoundException
+
+DEBUG = True
 
 logger = logging.getLogger(__name__)
 
@@ -87,10 +89,6 @@ class Notifier:
             header = title + '\n' + self.header
         else:
             header = self.header
-        # if DEBUG:
-        #     send_test(header + message)
-        #     return 0
-
         message_data = {"message": header + message}
 
         try:
@@ -101,7 +99,6 @@ class Notifier:
         except Exception as err:
             logger.info(f'Cannot notify validator {NOTIFIER_URL}. {err}')
             return 1
-
         if response.status_code != requests.codes.ok:
             logger.info(f'Request to {NOTIFIER_URL} failed, status code: {response.status_code}')
             return 1
