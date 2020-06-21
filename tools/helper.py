@@ -50,18 +50,11 @@ def check_if_node_is_registered(skale, node_id):
     return True
 
 
-def check_required_balance(skale):
+def check_required_balance(skale, notifier):
     address = skale.wallet.address
     eth_bal_before_tx = skale.web3.eth.getBalance(address)
     if eth_bal_before_tx < MIN_ETH_AMOUNT:
-        logger.info(f'ETH balance: {eth_bal_before_tx} is less than {MIN_ETH_AMOUNT}')
-        # TODO: notify SKALE Admin
-    min_eth_for_tx = GAS_LIMIT * skale.gas_price
-    if eth_bal_before_tx < min_eth_for_tx:
-        logger.info(f'ETH balance ({eth_bal_before_tx}) is too low, {min_eth_for_tx} required')
-        # TODO: notify SKALE Admin
-        raise NotEnoughEthForTxException(f'ETH balance is too low to send a transaction: '
-                                         f'{eth_bal_before_tx}')
+        notifier.send(f'ETH balance: {eth_bal_before_tx} is less than {MIN_ETH_AMOUNT}')
 
 
 @tenacity.retry(
@@ -83,7 +76,7 @@ def get_id_from_config(node_config_filepath) -> int:
 
 class Notifier:
     def __init__(self, node_name, node_id, node_ip):
-        self.header = f'Container: bounty-agent; Node: {node_name}, ' \
+        self.header = f'Container: sla-agent; Node: {node_name}, ' \
                       f'ID: {node_id}, IP: {node_ip}\n\n'
 
     def send(self, message, title=None):

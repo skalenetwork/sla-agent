@@ -178,7 +178,7 @@ class Monitor:
 
         if len(nodes_for_report) > 0:
             self.logger.info(f'Nodes for report ({len(nodes_for_report)}): {nodes_for_report}')
-            check_required_balance(self.skale)
+            check_required_balance(self.skale, self.notifier)
             self.send_reports(skale, nodes_for_report)
         else:
             self.logger.info('No nodes to be reported on')
