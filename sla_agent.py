@@ -29,7 +29,7 @@ from datetime import datetime
 import socket
 import schedule
 from skale.manager_client import spawn_skale_lib
-
+from skale.transactions.result import TransactionError
 from configs import (
     GOOD_IP, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD)
 from tools import db
@@ -92,12 +92,11 @@ class Monitor:
                     db.save_metrics_to_db(self.id, node['id'],
                                           metrics['is_offline'], metrics['latency'])
                 except Exception as err:
-                    self.logger.error(f'Cannot save metrics to database - '
-                                      f'is MySQL container running? {err}')
+                    self.notifier.send(f'Cannot save metrics to database - '
+                                       f'is MySQL container running? {err}')
             else:
-                self.logger.info(f'Cannot ping {GOOD_IP} - is network ok? '
-                                 f'Skipping monitoring node {node["id"]}')
-                # TODO: Notify skale-admin
+                self.notifier.send(f'Cannot ping {GOOD_IP} - is network ok? '
+                                   f'Skipping monitoring node {node["id"]}')
 
     def get_reported_nodes(self, skale, nodes) -> list:
         """Returns a list of nodes to be reported."""
@@ -132,16 +131,20 @@ class Monitor:
                                                         datetime.utcfromtimestamp(start_date),
                                                         datetime.utcfromtimestamp(node['rep_date']))
             except Exception as err:
-                self.logger.error(f'Failed to get month metrics from db for node id = '
-                                  f'{node["id"]}: {err}')
-                # TODO: Notify skale-admin
+                self.notifier.send(f'Failed to get month metrics from db for node id = '
+                                   f'{node["id"]}: {err}')
             else:
                 self.logger.info(f'Epoch metrics for node id = {node["id"]}: {metrics}')
                 verdict = (node['id'], metrics['downtime'], metrics['latency'])
                 verdicts.append(verdict)
 
         if len(verdicts) != 0:
-            tx_res = skale.manager.send_verdicts(self.id, verdicts)
+            try:
+                tx_res = skale.manager.send_verdicts(self.id, verdicts)
+            except TransactionError as err:
+                self.notifier.send(str(err))
+                raise
+
             self.logger.info('The report was successfully sent')
             self.logger.info(f'Tx hash: {tx_res.receipt}')
         return err_status
