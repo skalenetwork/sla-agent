@@ -81,27 +81,42 @@ def get_id_from_config(node_config_filepath) -> int:
         raise err
 
 
-def notify_validator(message):
-    """Send message to telegram."""
-    message_data = {"message": message}
-    try:
-        response = requests.post(url=NOTIFIER_URL, data=message_data)
-    except requests.exceptions.ConnectionError as err:
-        logger.info(f'Could not connect to {NOTIFIER_URL}')
-        logger.error(err)
-        return 1
-    except Exception as err:
-        logger.info(f'Cannot notify validator {NOTIFIER_URL}')
-        logger.error(err)
-        return 1
+class Notifier:
+    def __init__(self, node_name, node_id, node_ip):
+        self.header = f'Container: bounty-agent; Node: {node_name}, ' \
+                      f'ID: {node_id}, IP: {node_ip}\n\n'
 
-    if response.status_code != requests.codes.ok:
-        logger.info(f'Request to {NOTIFIER_URL} failed, status code: {response.status_code}')
-        return 1
+    def send(self, message, title=None):
+        """Send message to telegram."""
+        logger.info(message)
 
-    res = response.json()
-    if res.get('status') == 'error':
-        logger.info(f"Cannot notify validator: {res['payload']}")
-        return 1
-    logger.debug('Message to validator was sent successfully')
-    return 0
+        if title is not None:
+            header = title + '\n' + self.header
+        else:
+            header = self.header
+        # if DEBUG:
+        #     send_test(header + message)
+        #     return 0
+
+        message_data = {"message": header + message}
+
+        try:
+            response = requests.post(url=NOTIFIER_URL, json=message_data)
+        except requests.exceptions.ConnectionError as err:
+            logger.info(f'Could not connect to {NOTIFIER_URL}. {err}')
+            return 1
+        except Exception as err:
+            logger.info(f'Cannot notify validator {NOTIFIER_URL}. {err}')
+            return 1
+
+        if response.status_code != requests.codes.ok:
+            logger.info(f'Request to {NOTIFIER_URL} failed, status code: {response.status_code}')
+            return 1
+
+        res = response.json()
+        if res.get('status') == 'error':
+            logger.dubug(f"Cannot notify validator: {res['payload']}")
+            logger.info('Telegram notifications are not supported on the node')
+            return 1
+        logger.debug('Message to validator was sent successfully')
+        return 0

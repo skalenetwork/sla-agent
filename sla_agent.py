@@ -26,7 +26,7 @@ import logging
 import threading
 import time
 from datetime import datetime
-
+import socket
 import schedule
 from skale.manager_client import spawn_skale_lib
 
@@ -34,7 +34,8 @@ from configs import (
     GOOD_IP, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD)
 from tools import db
 from tools.helper import (
-    check_if_node_is_registered, get_id_from_config, init_skale, call_retry, check_required_balance)
+    check_if_node_is_registered, get_id_from_config, init_skale, call_retry, check_required_balance,
+    Notifier)
 from tools.logger import init_agent_logger
 from tools.metrics import get_metrics_for_node, get_ping_node_results
 
@@ -65,6 +66,11 @@ class Monitor:
         self.skale = skale
 
         check_if_node_is_registered(self.skale, self.id)
+
+        node_info = call_retry(self.skale.nodes.get, self.id)
+        self.notifier = Notifier(node_info['name'], self.id, socket.inet_ntoa(node_info['ip']))
+        self.notifier.send('SLA agent started')
+
         self.logger.info(f'Initialization of {self.agent_name} is completed. Node ID = {self.id}')
 
         self.nodes = []
