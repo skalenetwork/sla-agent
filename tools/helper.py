@@ -20,19 +20,18 @@
 import json
 import logging
 import os
+from enum import Enum
 
 import requests
 import tenacity
-from configs import MIN_ETH_AMOUNT, NOTIFIER_URL
-from configs.web3 import ABI_FILEPATH, ENDPOINT
 from skale import Skale
 from skale.wallets import RPCWallet
+
+from configs import MIN_ETH_AMOUNT, NOTIFIER_URL
+from configs.web3 import ABI_FILEPATH, ENDPOINT
 from tools.exceptions import NodeNotFoundException
 
-DEBUG = True
-
 logger = logging.getLogger(__name__)
-
 
 call_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(10),
                                wait=tenacity.wait_fixed(2),
@@ -75,19 +74,22 @@ def get_id_from_config(node_config_filepath) -> int:
         raise err
 
 
+class MsgIcon(Enum):
+    INFO = '\u2705'
+    WARNING = '\u26a0\ufe0f'
+    ERROR = '\u203c\ufe0f'
+    CRITICAL = '\ud83c\udd98'
+
+
 class Notifier:
     def __init__(self, node_name, node_id, node_ip):
-        self.header = f'Container: sla-agent; Node: {node_name}, ' \
+        self.header = f'Container: bounty-agent, Node: {node_name}, ' \
                       f'ID: {node_id}, IP: {node_ip}\n\n'
 
-    def send(self, message, title=None):
+    def send(self, message, icon=MsgIcon.ERROR):
         """Send message to telegram."""
         logger.info(message)
-
-        if title is not None:
-            header = title + '\n' + self.header
-        else:
-            header = self.header
+        header = f'{icon.value} {self.header}'
         message_data = {"message": header + message}
 
         try:
@@ -104,7 +106,6 @@ class Notifier:
 
         res = response.json()
         if res.get('status') == 'error':
-            logger.dubug(f"Cannot notify validator: {res['payload']}")
             logger.info('Telegram notifications are not supported on the node')
             return 1
         logger.debug('Message to validator was sent successfully')
