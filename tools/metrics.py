@@ -21,11 +21,10 @@ import logging
 
 import pingparsing
 import requests
+from configs import GOOD_IP, WATCHDOG_PORT, WATCHDOG_URL
 from skale.dataclasses.skaled_ports import SkaledPorts
 from skale.schain_config.ports_allocation import get_schain_base_port_on_node
 from web3 import HTTPProvider, Web3
-
-from configs import GOOD_IP, WATCHDOG_PORT, WATCHDOG_URL
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +64,7 @@ def check_schain(schain, node_ip):
 def check_schains_for_node(skale, node_id, node_ip):
     raw_schains = skale.schains_data.get_schains_for_node(node_id)
 
-    node_info = skale.nodes_data.get(node_id)
+    node_info = skale.nodes.get(node_id)
     node_base_port = node_info['port']
 
     schains = [{'name': schain['name'],

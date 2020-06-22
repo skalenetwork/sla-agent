@@ -20,9 +20,8 @@
 
 import logging
 
-from peewee import BooleanField, DateTimeField, IntegerField, Model, MySQLDatabase, fn
-
 from configs.db import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
+from peewee import BooleanField, DateTimeField, IntegerField, Model, MySQLDatabase, fn
 
 logger = logging.getLogger(__name__)
 

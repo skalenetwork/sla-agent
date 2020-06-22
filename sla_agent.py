@@ -23,18 +23,20 @@ from SKALE Manager (SM), checks its health metrics and sends transactions with a
 when it's time to send it
 """
 import logging
+import socket
 import threading
 import time
 from datetime import datetime
 
 import schedule
 from skale.manager_client import spawn_skale_lib
+from skale.transactions.result import TransactionError
 
-from configs import (
-    GOOD_IP, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD)
+from configs import GOOD_IP, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD
 from tools import db
 from tools.helper import (
-    check_if_node_is_registered, get_id_from_config, init_skale, call_retry, check_required_balance)
+    MsgIcon, Notifier, call_retry, check_if_node_is_registered, check_required_balance,
+    get_id_from_config, init_skale)
 from tools.logger import init_agent_logger
 from tools.metrics import get_metrics_for_node, get_ping_node_results
 
@@ -65,6 +67,11 @@ class Monitor:
         self.skale = skale
 
         check_if_node_is_registered(self.skale, self.id)
+
+        node_info = call_retry(self.skale.nodes.get, self.id)
+        self.notifier = Notifier(node_info['name'], self.id, socket.inet_ntoa(node_info['ip']))
+        self.notifier.send('SLA agent started', icon=MsgIcon.INFO)
+
         self.logger.info(f'Initialization of {self.agent_name} is completed. Node ID = {self.id}')
 
         self.nodes = []
@@ -86,12 +93,11 @@ class Monitor:
                     db.save_metrics_to_db(self.id, node['id'],
                                           metrics['is_offline'], metrics['latency'])
                 except Exception as err:
-                    self.logger.error(f'Cannot save metrics to database - '
-                                      f'is MySQL container running? {err}')
+                    self.notifier.send(f'Cannot save metrics to database - '
+                                       f'is MySQL container running? {err}', icon=MsgIcon.ERROR)
             else:
-                self.logger.info(f'Cannot ping {GOOD_IP} - is network ok? '
-                                 f'Skipping monitoring node {node["id"]}')
-                # TODO: Notify skale-admin
+                self.notifier.send(f'Cannot ping {GOOD_IP} - is network ok? '
+                                   f'Skipping monitoring node {node["id"]}', icon=MsgIcon.ERROR)
 
     def get_reported_nodes(self, skale, nodes) -> list:
         """Returns a list of nodes to be reported."""
@@ -126,16 +132,20 @@ class Monitor:
                                                         datetime.utcfromtimestamp(start_date),
                                                         datetime.utcfromtimestamp(node['rep_date']))
             except Exception as err:
-                self.logger.error(f'Failed to get month metrics from db for node id = '
-                                  f'{node["id"]}: {err}')
-                # TODO: Notify skale-admin
+                self.notifier.send(f'Failed to get month metrics from db for node id = '
+                                   f'{node["id"]}: {err}', icon=MsgIcon.ERROR)
             else:
                 self.logger.info(f'Epoch metrics for node id = {node["id"]}: {metrics}')
                 verdict = (node['id'], metrics['downtime'], metrics['latency'])
                 verdicts.append(verdict)
 
         if len(verdicts) != 0:
-            tx_res = skale.manager.send_verdicts(self.id, verdicts)
+            try:
+                tx_res = skale.manager.send_verdicts(self.id, verdicts)
+            except TransactionError as err:
+                self.notifier.send(str(err), icon=MsgIcon.CRITICAL)
+                raise
+
             self.logger.info('The report was successfully sent')
             self.logger.info(f'Tx hash: {tx_res.receipt}')
         return err_status
@@ -147,7 +157,7 @@ class Monitor:
         self.logger.info('New monitor job started...')
         skale = spawn_skale_lib(self.skale)
         try:
-            self.nodes = call_retry.call(skale.monitors_data.get_checked_array, self.id)
+            self.nodes = call_retry.call(skale.monitors.get_checked_array, self.id)
         except Exception as err:
             self.logger.exception(f'Failed to get list of monitored nodes. Error: {err}')
             self.logger.info('Monitoring nodes from previous job list')
@@ -164,12 +174,12 @@ class Monitor:
         self.logger.info('New report job started...')
         skale = spawn_skale_lib(self.skale)
 
-        self.nodes = call_retry.call(skale.monitors_data.get_checked_array, self.id)
+        self.nodes = call_retry.call(skale.monitors.get_checked_array, self.id)
         nodes_for_report = self.get_reported_nodes(skale, self.nodes)
 
         if len(nodes_for_report) > 0:
             self.logger.info(f'Nodes for report ({len(nodes_for_report)}): {nodes_for_report}')
-            check_required_balance(self.skale)
+            check_required_balance(self.skale, self.notifier)
             self.send_reports(skale, nodes_for_report)
         else:
             self.logger.info('No nodes to be reported on')

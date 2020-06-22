@@ -7,6 +7,7 @@ ENV = os.environ.get('ENV')
 LONG_LINE = '-' * 100
 LONG_DOUBLE_LINE = '=' * 100
 
+NOTIFIER_URL = 'http://localhost:3007/send-tg-notification'
 SKALE_VOLUME_PATH = '/skale_vol'
 NODE_DATA_PATH = '/skale_node_data'
 
