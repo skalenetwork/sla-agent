@@ -34,7 +34,8 @@ def get_metrics_for_node(skale, node, is_test_mode):
     metrics = get_ping_node_results(host)
     if not is_test_mode:
         healthcheck = get_containers_healthcheck(host)
-        schains_check = check_schains_for_node(skale, node['id'], host)
+        # schains_check = check_schains_for_node(skale, node['id'], host)  # TODO Remove!!!
+        schains_check = 0
         metrics['is_offline'] = metrics['is_offline'] | healthcheck | schains_check
 
     logger.info(f'Received metrics from node ID = {node["id"]}: {metrics}')
