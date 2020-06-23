@@ -83,7 +83,7 @@ class MsgIcon(Enum):
 
 class Notifier:
     def __init__(self, node_name, node_id, node_ip):
-        self.header = f'Container: bounty-agent, Node: {node_name}, ' \
+        self.header = f'Container: sla-agent, Node: {node_name}, ' \
                       f'ID: {node_id}, IP: {node_ip}\n\n'
 
     def send(self, message, icon=MsgIcon.ERROR):
@@ -100,13 +100,15 @@ class Notifier:
         except Exception as err:
             logger.info(f'Cannot notify validator {NOTIFIER_URL}. {err}')
             return 1
+        if response.status_code == 400:
+            logger.info('Telegram notifications are not supported on the node')
+            return 1
         if response.status_code != requests.codes.ok:
             logger.info(f'Request to {NOTIFIER_URL} failed, status code: {response.status_code}')
             return 1
-
         res = response.json()
-        if res.get('status') == 'error':
-            logger.info('Telegram notifications are not supported on the node')
+        if res.get('status') == 'ok':
+            logger.debug('Message to validator was sent successfully')
+            return 0
+        else:
             return 1
-        logger.debug('Message to validator was sent successfully')
-        return 0
