@@ -83,7 +83,7 @@ class MsgIcon(Enum):
 
 class Notifier:
     def __init__(self, node_name, node_id, node_ip):
-        self.header = f'Container: bounty-agent, Node: {node_name}, ' \
+        self.header = f'Container: sla-agent, Node: {node_name}, ' \
                       f'ID: {node_id}, IP: {node_ip}\n\n'
 
     def send(self, message, icon=MsgIcon.ERROR):
