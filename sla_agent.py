@@ -23,6 +23,7 @@ from SKALE Manager (SM), checks its health metrics and sends transactions with a
 when it's time to send it
 """
 import logging
+import queue
 import socket
 import threading
 import time
@@ -44,6 +45,18 @@ from tools.metrics import get_metrics_for_node, get_ping_node_results
 def run_threaded(job_func):
     job_thread = threading.Thread(target=job_func)
     job_thread.start()
+
+
+class Worker:
+
+    def __init__(self):
+        self.jobqueue = queue.Queue()
+
+    def worker(self):
+        while True:
+            job_func = self.jobqueue.get()
+            job_func()
+            self.jobqueue.task_done()
 
 
 class Monitor:
@@ -190,10 +203,16 @@ class Monitor:
     def run(self) -> None:
         """Starts sla agent."""
         self.logger.debug(f'{self.agent_name} started')
-        run_threaded(self.monitor_job)
-        run_threaded(self.report_job)
-        schedule.every(MONITOR_PERIOD).minutes.do(run_threaded, self.monitor_job)
-        schedule.every(REPORT_PERIOD).minutes.do(run_threaded, self.report_job)
+        monitor_w = Worker()
+        reporter_w = Worker()
+        schedule.every(MONITOR_PERIOD).minutes.do(monitor_w.jobqueue.put, self.monitor_job)
+        schedule.every(REPORT_PERIOD).minutes.do(reporter_w.jobqueue.put, self.report_job)
+        threading.Thread(target=monitor_w.worker).start()
+        threading.Thread(target=reporter_w.worker).start()
+        # run_threaded(self.monitor_job)
+        # run_threaded(self.report_job)
+        # schedule.every(MONITOR_PERIOD).minutes.do(run_threaded, self.monitor_job)
+        # schedule.every(REPORT_PERIOD).minutes.do(run_threaded, self.report_job)
         while True:
             schedule.run_pending()
             time.sleep(1)
