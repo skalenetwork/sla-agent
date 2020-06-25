@@ -25,11 +25,13 @@ from configs import GOOD_IP, WATCHDOG_PORT, WATCHDOG_URL
 from skale.dataclasses.skaled_ports import SkaledPorts
 from skale.schain_config.ports_allocation import get_schain_base_port_on_node
 from web3 import HTTPProvider, Web3
+import time
 
 logger = logging.getLogger(__name__)
 
 
 def get_metrics_for_node(skale, node, is_test_mode):
+    time.sleep(5)  # TODO: REMOVE!
     host = GOOD_IP if is_test_mode else node['ip']
     metrics = get_ping_node_results(host)
     if not is_test_mode:

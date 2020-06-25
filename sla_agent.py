@@ -33,13 +33,14 @@ import schedule
 from skale.manager_client import spawn_skale_lib
 from skale.transactions.result import TransactionError
 
-from configs import GOOD_IP, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD
+from configs import LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD
 from tools import db
 from tools.helper import (
     MsgIcon, Notifier, call_retry, check_if_node_is_registered, check_required_balance,
     get_id_from_config, init_skale)
 from tools.logger import init_agent_logger
-from tools.metrics import get_metrics_for_node, get_ping_node_results
+from tools.metrics import get_metrics_for_node
+from concurrent.futures import ThreadPoolExecutor
 
 
 def run_threaded(job_func):
@@ -99,18 +100,38 @@ class Monitor:
             self.logger.info(f'Number of nodes for monitoring: {len(nodes)}')
             self.logger.info(f'Nodes for monitoring : {nodes}')
 
-        for node in nodes:
-            if not get_ping_node_results(GOOD_IP)['is_offline']:
-                metrics = get_metrics_for_node(skale, node, self.is_test_mode)
+        with ThreadPoolExecutor(max_workers=max(1, len(nodes))) as executor:
+            futures_for_node = {
+                executor.submit(
+                    get_metrics_for_node,
+                    skale, node,
+                    self.is_test_mode
+                ): node
+                for node in nodes
+            }
+
+            for future in futures_for_node:
+                metrics = future.result()
+
                 try:
-                    db.save_metrics_to_db(self.id, node['id'],
+                    db.save_metrics_to_db(self.id, futures_for_node[future]['id'],
                                           metrics['is_offline'], metrics['latency'])
                 except Exception as err:
                     self.notifier.send(f'Cannot save metrics to database - '
                                        f'is MySQL container running? {err}', icon=MsgIcon.ERROR)
-            else:
-                self.notifier.send(f'Cannot ping {GOOD_IP} - is network ok? '
-                                   f'Skipping monitoring node {node["id"]}', icon=MsgIcon.ERROR)
+
+        # for node in nodes:
+        #     if not get_ping_node_results(GOOD_IP)['is_offline']:
+        #         metrics = get_metrics_for_node(skale, node, self.is_test_mode)
+        #         try:
+        #             db.save_metrics_to_db(self.id, node['id'],
+        #                                   metrics['is_offline'], metrics['latency'])
+        #         except Exception as err:
+        #             self.notifier.send(f'Cannot save metrics to database - '
+        #                                f'is MySQL container running? {err}', icon=MsgIcon.ERROR)
+        #     else:
+        #         self.notifier.send(f'Cannot ping {GOOD_IP} - is network ok? '
+        #                            f'Skipping monitoring node {node["id"]}', icon=MsgIcon.ERROR)
 
     def get_reported_nodes(self, skale, nodes) -> list:
         """Returns a list of nodes to be reported."""
@@ -167,6 +188,7 @@ class Monitor:
         """
         Periodic job for monitoring nodes.
         """
+        start = time.time()  # TODO: REMOVE!
         self.logger.info('New monitor job started...')
         skale = spawn_skale_lib(self.skale)
         try:
@@ -179,12 +201,16 @@ class Monitor:
         self.validate_nodes(skale, self.nodes)
 
         self.logger.info('Monitor job finished...')
+        end = time.time()  # TODO: REMOVE!
+        self.logger.info(f'{threading.enumerate()}')
+        self.logger.info(f'Check completed. Execution time = {end - start}')   # TODO: REMOVE!
 
     def report_job(self) -> bool:
         """
         Periodic job for sending reports.
         """
         self.logger.info('New report job started...')
+        self.logger.info(f'{threading.enumerate()}')
         skale = spawn_skale_lib(self.skale)
 
         self.nodes = call_retry.call(skale.monitors.get_checked_array, self.id)
@@ -203,12 +229,17 @@ class Monitor:
     def run(self) -> None:
         """Starts sla agent."""
         self.logger.debug(f'{self.agent_name} started')
+
         monitor_w = Worker()
         reporter_w = Worker()
-        schedule.every(MONITOR_PERIOD).minutes.do(monitor_w.jobqueue.put, self.monitor_job)
-        schedule.every(REPORT_PERIOD).minutes.do(reporter_w.jobqueue.put, self.report_job)
+        monitor_schedule = schedule.every(MONITOR_PERIOD).minutes.do(
+            monitor_w.jobqueue.put, self.monitor_job)
+        report_schedule = schedule.every(REPORT_PERIOD).minutes.do(
+            reporter_w.jobqueue.put, self.report_job)
         threading.Thread(target=monitor_w.worker).start()
         threading.Thread(target=reporter_w.worker).start()
+        monitor_schedule.run()
+        report_schedule.run()
         # run_threaded(self.monitor_job)
         # run_threaded(self.report_job)
         # schedule.every(MONITOR_PERIOD).minutes.do(run_threaded, self.monitor_job)
