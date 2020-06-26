@@ -100,7 +100,8 @@ class Monitor:
             self.logger.info(f'Number of nodes for monitoring: {len(nodes)}')
             self.logger.info(f'Nodes for monitoring : {nodes}')
 
-        with ThreadPoolExecutor(max_workers=max(1, len(nodes))) as executor:
+        with ThreadPoolExecutor(max_workers=max(1, len(nodes)),
+                                thread_name_prefix='MonThread') as executor:
             futures_for_node = {
                 executor.submit(
                     get_metrics_for_node,
@@ -238,8 +239,8 @@ class Monitor:
             monitor_w.jobqueue.put, self.monitor_job)
         report_schedule = schedule.every(REPORT_PERIOD).minutes.do(
             reporter_w.jobqueue.put, self.report_job)
-        threading.Thread(target=monitor_w.worker).start()
-        threading.Thread(target=reporter_w.worker).start()
+        threading.Thread(target=monitor_w.worker, name='Monitor').start()
+        threading.Thread(target=reporter_w.worker, name='Reporter').start()
         monitor_schedule.run()
         report_schedule.run()
         # run_threaded(self.monitor_job)
