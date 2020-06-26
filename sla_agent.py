@@ -111,15 +111,17 @@ class Monitor:
             }
 
             for future in futures_for_node:
-                metrics = future.result()
-
                 try:
-                    db.save_metrics_to_db(self.id, futures_for_node[future]['id'],
-                                          metrics['is_offline'], metrics['latency'])
+                    metrics = future.result()
                 except Exception as err:
-                    self.notifier.send(f'Cannot save metrics to database - '
-                                       f'is MySQL container running? {err}', icon=MsgIcon.ERROR)
-
+                    self.logger.exception(err)
+                else:
+                    try:
+                        db.save_metrics_to_db(self.id, futures_for_node[future]['id'],
+                                              metrics['is_offline'], metrics['latency'])
+                    except Exception as err:
+                        self.notifier.send(f'Cannot save metrics to database - '
+                                           f'is MySQL container running? {err}', icon=MsgIcon.ERROR)
         # for node in nodes:
         #     if not get_ping_node_results(GOOD_IP)['is_offline']:
         #         metrics = get_metrics_for_node(skale, node, self.is_test_mode)
