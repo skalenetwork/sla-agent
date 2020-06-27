@@ -91,7 +91,7 @@ def get_containers_healthcheck(host):
     """Return 0 if OK or 1 if failed."""
     url = get_containers_healthcheck_url(host)
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=20)
     except requests.exceptions.ConnectionError as err:
         logger.info(f'Could not connect to {url}')
         logger.error(err)
