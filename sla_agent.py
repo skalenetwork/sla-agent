@@ -22,6 +22,7 @@ SLA agent runs on every node of SKALE network, periodically gets a list of nodes
 from SKALE Manager (SM), checks its health metrics and sends transactions with average metrics to SM
 when it's time to send it
 """
+import concurrent.futures
 import logging
 import queue
 import socket
@@ -40,7 +41,6 @@ from tools.helper import (
     get_id_from_config, init_skale)
 from tools.logger import init_agent_logger
 from tools.metrics import get_metrics_for_node
-from concurrent.futures import ThreadPoolExecutor
 
 
 def run_threaded(job_func):
@@ -100,8 +100,8 @@ class Monitor:
             self.logger.info(f'Number of nodes for monitoring: {len(nodes)}')
             self.logger.info(f'Nodes for monitoring : {nodes}')
 
-        with ThreadPoolExecutor(max_workers=max(1, len(nodes)),
-                                thread_name_prefix='MonThread') as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(nodes)),
+                                                   thread_name_prefix='MonThread') as executor:
             futures_for_node = {
                 executor.submit(
                     get_metrics_for_node,
@@ -111,11 +111,13 @@ class Monitor:
                 for node in nodes
             }
 
+            # for future in concurrent.futures.as_completed(futures_for_node):
             for future in futures_for_node:
                 try:
-                    metrics = future.result()
+                    metrics = future.result(timeout=55)
                 except Exception as err:
-                    self.logger.exception(err)
+                    self.logger.exception(f'Cannot get metrics for Node id = '
+                                          f'{futures_for_node[future]["id"]}: {err}')
                 else:
                     try:
                         db.save_metrics_to_db(self.id, futures_for_node[future]['id'],
@@ -123,6 +125,7 @@ class Monitor:
                     except Exception as err:
                         self.notifier.send(f'Cannot save metrics to database - '
                                            f'is MySQL container running? {err}', icon=MsgIcon.ERROR)
+
         # for node in nodes:
         #     if not get_ping_node_results(GOOD_IP)['is_offline']:
         #         metrics = get_metrics_for_node(skale, node, self.is_test_mode)
@@ -243,6 +246,7 @@ class Monitor:
         threading.Thread(target=reporter_w.worker, name='Reporter').start()
         monitor_schedule.run()
         report_schedule.run()
+
         # run_threaded(self.monitor_job)
         # run_threaded(self.report_job)
         # schedule.every(MONITOR_PERIOD).minutes.do(run_threaded, self.monitor_job)
