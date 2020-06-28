@@ -49,7 +49,6 @@ def change_skale_manager_time_constants(skale, test_epoch=TEST_EPOCH, test_delta
     print(f'New SKALE Manager time constants: {reward_period}, {delta_period}')
 
 
-
 def set_test_msr(skale, msr=D_VALIDATOR_MIN_DEL):
     skale.constants_holder._set_msr(
         new_msr=msr,
