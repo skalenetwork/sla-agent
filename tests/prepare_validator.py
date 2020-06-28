@@ -38,13 +38,16 @@ def change_skale_manager_time_constants(skale, test_epoch=TEST_EPOCH, test_delta
 
     reward_period = skale.constants_holder.get_reward_period()
     delta_period = skale.constants_holder.get_delta_period()
-    print(f'Existing SKALE Manager time constants: {reward_period}, {delta_period}')
 
+    print(f'Existing SKALE Manager time constants: {reward_period}, {delta_period}')
+    tx_res = skale.constants_holder.set_check_time(5, wait_for=True)
+    assert tx_res.receipt['status'] == 1
     tx_res = skale.constants_holder.set_periods(test_epoch, test_delta, wait_for=True)
     assert tx_res.receipt['status'] == 1
     reward_period = skale.constants_holder.get_reward_period()
     delta_period = skale.constants_holder.get_delta_period()
     print(f'New SKALE Manager time constants: {reward_period}, {delta_period}')
+
 
 
 def set_test_msr(skale, msr=D_VALIDATOR_MIN_DEL):
