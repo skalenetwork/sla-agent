@@ -54,7 +54,7 @@ def check_schain(schain, node_ip):
     logger.info(f'\nChecking {schain_name}: {schain_endpoint}')
 
     try:
-        web3 = Web3(HTTPProvider(schain_endpoint))
+        web3 = Web3(HTTPProvider(schain_endpoint, request_kwargs={'timeout': 10}))
         block_number = web3.eth.blockNumber
         logger.info(f"Current block number for {schain_name} = {block_number}")
         return 0
