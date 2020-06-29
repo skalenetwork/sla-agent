@@ -201,8 +201,9 @@ class Monitor:
             self.nodes = call_retry.call(skale.monitors.get_checked_array, self.id)
         except Exception as err:
             self.logger.exception(f'Failed to get list of monitored nodes. Error: {err}')
+            self.notifier.send(f'Cannot save metrics to database - '
+                               f'is MySQL container running? {err}', icon=MsgIcon.ERROR)
             self.logger.info('Monitoring nodes from previous job list')
-            # TODO: Notify skale-admin
 
         self.validate_nodes(skale, self.nodes)
 
@@ -215,22 +216,27 @@ class Monitor:
         """
         Periodic job for sending reports.
         """
-        self.logger.info('New report job started...')
-        self.logger.info(f'{threading.enumerate()}')
-        skale = spawn_skale_lib(self.skale)
+        try:
+            self.logger.info('New report job started...')
+            self.logger.info(f'{threading.enumerate()}')
+            skale = spawn_skale_lib(self.skale)
 
-        self.nodes = call_retry.call(skale.monitors.get_checked_array, self.id)
-        nodes_for_report = self.get_reported_nodes(skale, self.nodes)
+            self.nodes = call_retry.call(skale.monitors.get_checked_array, self.id)
+            nodes_for_report = self.get_reported_nodes(skale, self.nodes)
 
-        if len(nodes_for_report) > 0:
-            self.logger.info(f'Nodes for report ({len(nodes_for_report)}): {nodes_for_report}')
-            check_required_balance(self.skale, self.notifier)
-            self.send_reports(skale, nodes_for_report)
+            if len(nodes_for_report) > 0:
+                self.logger.info(f'Nodes for report ({len(nodes_for_report)}): {nodes_for_report}')
+                check_required_balance(self.skale, self.notifier)
+                self.send_reports(skale, nodes_for_report)
+            else:
+                self.logger.info('No nodes to be reported on')
+
+            self.logger.info('Report job finished...')
+        except Exception as err:
+            self.notifier.send(f'Error occurred while doing report job: {err}', icon=MsgIcon.ERROR)
+            return False
         else:
-            self.logger.info('No nodes to be reported on')
-
-        self.logger.info('Report job finished...')
-        return True
+            return True
 
     def run(self) -> None:
         """Starts sla agent."""
