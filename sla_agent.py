@@ -194,23 +194,27 @@ class Monitor:
         """
         Periodic job for monitoring nodes.
         """
-        start = time.time()  # TODO: REMOVE!
-        self.logger.info('New monitor job started...')
-        skale = spawn_skale_lib(self.skale)
         try:
-            self.nodes = call_retry.call(skale.monitors.get_checked_array, self.id)
+            start = time.time()  # TODO: REMOVE!
+            self.logger.info('New monitor job started...')
+            skale = spawn_skale_lib(self.skale)
+            try:
+                self.nodes = call_retry.call(skale.monitors.get_checked_array, self.id)
+            except Exception as err:
+                self.logger.exception(f'Failed to get list of monitored nodes. Error: {err}')
+                self.notifier.send(f'Cannot save metrics to database - '
+                                   f'is MySQL container running? {err}', icon=MsgIcon.ERROR)
+                self.logger.info('Monitoring nodes from previous job list')
+
+            self.validate_nodes(skale, self.nodes)
+
+            self.logger.info('Monitor job finished.')
+            end = time.time()  # TODO: REMOVE!
+            self.logger.info(f'{threading.enumerate()}')
+            self.logger.info(f'Check completed. Execution time = {end - start}')   # TODO: REMOVE!
         except Exception as err:
-            self.logger.exception(f'Failed to get list of monitored nodes. Error: {err}')
-            self.notifier.send(f'Cannot save metrics to database - '
-                               f'is MySQL container running? {err}', icon=MsgIcon.ERROR)
-            self.logger.info('Monitoring nodes from previous job list')
-
-        self.validate_nodes(skale, self.nodes)
-
-        self.logger.info('Monitor job finished...')
-        end = time.time()  # TODO: REMOVE!
-        self.logger.info(f'{threading.enumerate()}')
-        self.logger.info(f'Check completed. Execution time = {end - start}')   # TODO: REMOVE!
+            self.notifier.send(f'Error occurred during monitoring job: {err}', icon=MsgIcon.ERROR)
+            self.logger.exception(err)
 
     def report_job(self) -> bool:
         """
@@ -231,9 +235,9 @@ class Monitor:
             else:
                 self.logger.info('No nodes to be reported on')
 
-            self.logger.info('Report job finished...')
+            self.logger.info('Report job finished.')
         except Exception as err:
-            self.notifier.send(f'Error occurred while doing report job: {err}', icon=MsgIcon.ERROR)
+            self.notifier.send(f'Error occurred during report job: {err}', icon=MsgIcon.ERROR)
             self.logger.exception(err)
             return False
         else:
@@ -241,8 +245,6 @@ class Monitor:
 
     def run(self) -> None:
         """Starts sla agent."""
-        self.logger.debug(f'{self.agent_name} started')
-
         monitor_w = Worker()
         reporter_w = Worker()
         monitor_schedule = schedule.every(MONITOR_PERIOD).minutes.do(
