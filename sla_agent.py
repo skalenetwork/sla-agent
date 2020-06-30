@@ -234,6 +234,7 @@ class Monitor:
             self.logger.info('Report job finished...')
         except Exception as err:
             self.notifier.send(f'Error occurred while doing report job: {err}', icon=MsgIcon.ERROR)
+            self.logger.exception(err)
             return False
         else:
             return True

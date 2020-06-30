@@ -135,7 +135,7 @@ def get_ping_node_results(host) -> dict:
                 result).as_dict()['packet_loss_count'] > 1:
         is_offline = True
         latency = -1
-        logger.info('No connection to host!')
+        logger.info(f'No ping response from host {host}')
     else:
         is_offline = False
         latency = int((ping_parser.parse(result).as_dict()['rtt_avg']) * 1000)
