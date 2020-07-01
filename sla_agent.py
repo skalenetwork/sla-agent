@@ -126,19 +126,6 @@ class Monitor:
                         self.notifier.send(f'Cannot save metrics to database - '
                                            f'is MySQL container running? {err}', icon=MsgIcon.ERROR)
 
-        # for node in nodes:
-        #     if not get_ping_node_results(GOOD_IP)['is_offline']:
-        #         metrics = get_metrics_for_node(skale, node, self.is_test_mode)
-        #         try:
-        #             db.save_metrics_to_db(self.id, node['id'],
-        #                                   metrics['is_offline'], metrics['latency'])
-        #         except Exception as err:
-        #             self.notifier.send(f'Cannot save metrics to database - '
-        #                                f'is MySQL container running? {err}', icon=MsgIcon.ERROR)
-        #     else:
-        #         self.notifier.send(f'Cannot ping {GOOD_IP} - is network ok? '
-        #                            f'Skipping monitoring node {node["id"]}', icon=MsgIcon.ERROR)
-
     def get_reported_nodes(self, skale, nodes) -> list:
         """Returns a list of nodes to be reported."""
         last_block_number = skale.web3.eth.blockNumber
