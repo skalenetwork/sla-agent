@@ -182,7 +182,6 @@ class Monitor:
         Periodic job for monitoring nodes.
         """
         try:
-            start = time.time()  # TODO: REMOVE!
             self.logger.info('New monitor job started...')
             skale = spawn_skale_lib(self.skale)
             try:
@@ -195,10 +194,9 @@ class Monitor:
 
             self.validate_nodes(skale, self.nodes)
 
-            self.logger.info('Monitor job finished.')
-            end = time.time()  # TODO: REMOVE!
             self.logger.info(f'{threading.enumerate()}')
-            self.logger.info(f'Check completed. Execution time = {end - start}')   # TODO: REMOVE!
+            self.logger.info('Monitor job finished.')
+
         except Exception as err:
             self.notifier.send(f'Error occurred during monitoring job: {err}', icon=MsgIcon.ERROR)
             self.logger.exception(err)
