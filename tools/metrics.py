@@ -32,10 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 def check_internet_connection():
-    if get_ping_node_results(GOOD_IP)['is_offline']:
-        return False
-    else:
-        return True
+    return not get_ping_node_results(GOOD_IP)['is_offline']
 
 
 def get_metrics_for_node(skale, node, is_test_mode):
