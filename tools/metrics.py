@@ -21,16 +21,25 @@ import logging
 
 import pingparsing
 import requests
-from configs import GOOD_IP, WATCHDOG_PORT, WATCHDOG_URL
 from skale.dataclasses.skaled_ports import SkaledPorts
 from skale.schain_config.ports_allocation import get_schain_base_port_on_node
 from web3 import HTTPProvider, Web3
 
+from configs import GOOD_IP, WATCHDOG_PORT, WATCHDOG_URL
+from tools.exceptions import NoInternetConnectionException
+
 logger = logging.getLogger(__name__)
 
 
+def check_internet_connection():
+    return not get_ping_node_results(GOOD_IP)['is_offline']
+
+
 def get_metrics_for_node(skale, node, is_test_mode):
+    if not check_internet_connection():
+        raise NoInternetConnectionException
     host = GOOD_IP if is_test_mode else node['ip']
+
     metrics = get_ping_node_results(host)
     if not is_test_mode:
         healthcheck = get_containers_healthcheck(host)
@@ -52,7 +61,7 @@ def check_schain(schain, node_ip):
     logger.info(f'\nChecking {schain_name}: {schain_endpoint}')
 
     try:
-        web3 = Web3(HTTPProvider(schain_endpoint))
+        web3 = Web3(HTTPProvider(schain_endpoint, request_kwargs={'timeout': 10}))
         block_number = web3.eth.blockNumber
         logger.info(f"Current block number for {schain_name} = {block_number}")
         return 0
@@ -89,7 +98,7 @@ def get_containers_healthcheck(host):
     """Return 0 if OK or 1 if failed."""
     url = get_containers_healthcheck_url(host)
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=20)
     except requests.exceptions.ConnectionError as err:
         logger.info(f'Could not connect to {url}')
         logger.error(err)
@@ -133,7 +142,7 @@ def get_ping_node_results(host) -> dict:
                 result).as_dict()['packet_loss_count'] > 1:
         is_offline = True
         latency = -1
-        logger.info('No connection to host!')
+        logger.info(f'No ping response from host {host}')
     else:
         is_offline = False
         latency = int((ping_parser.parse(result).as_dict()['rtt_avg']) * 1000)

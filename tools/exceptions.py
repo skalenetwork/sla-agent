@@ -22,9 +22,5 @@ class NodeNotFoundException(Exception):
     """Raised when Node ID doesn't exist in SKALE Manager."""
 
 
-class TxCallFailedException(Exception):
-    """Raised when sendVerdict transaction call (dry-run) failed."""
-
-
-class NotEnoughEthForTxException(Exception):
-    """Raised when a wallet balance is too low to send a transaction."""
+class NoInternetConnectionException(Exception):
+    """Raised when no internet connection detected."""
