@@ -240,11 +240,6 @@ class Monitor:
         threading.Thread(target=reporter_w.worker, name='Reporter').start()
         monitor_schedule.run()
         report_schedule.run()
-
-        # run_threaded(self.monitor_job)
-        # run_threaded(self.report_job)
-        # schedule.every(MONITOR_PERIOD).minutes.do(run_threaded, self.monitor_job)
-        # schedule.every(REPORT_PERIOD).minutes.do(run_threaded, self.report_job)
         while True:
             schedule.run_pending()
             time.sleep(1)
