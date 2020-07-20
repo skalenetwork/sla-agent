@@ -43,8 +43,8 @@ def get_metrics_for_node(skale, node, is_test_mode):
     metrics = get_ping_node_results(host)
     if not is_test_mode:
         healthcheck = get_containers_healthcheck(host)
-        # schains_check = check_schains_for_node(skale, node['id'], host)  # TODO Remove!!!
-        schains_check = 0
+        schains_check = check_schains_for_node(skale, node['id'], host)
+        # schains_check = 0  # TODO Remove!!!
         metrics['is_offline'] = metrics['is_offline'] | healthcheck | schains_check
 
     logger.info(f'Received metrics from node ID = {node["id"]}: {metrics}')
@@ -71,7 +71,7 @@ def check_schain(schain, node_ip):
 
 
 def check_schains_for_node(skale, node_id, node_ip):
-    raw_schains = skale.schains_data.get_schains_for_node(node_id)
+    raw_schains = skale.schains.get_schains_for_node(node_id)
 
     node_info = skale.nodes.get(node_id)
     node_base_port = node_info['port']
