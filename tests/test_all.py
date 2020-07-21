@@ -93,8 +93,8 @@ def test_send_reports_pos(skale, monitor):
     print(f'--- Gas Price = {skale.web3.eth.gasPrice}')
     print(f'ETH balance of account : '
           f'{skale.web3.eth.getBalance(skale.wallet.address)}')
-
-    reported_nodes = monitor.get_reported_nodes(skale, monitor.nodes)
+    nodes = skale.monitors.get_checked_array(monitor.id)
+    reported_nodes = monitor.get_reported_nodes(skale, nodes)
     db.clear_all_reports()
     assert monitor.send_reports(skale, reported_nodes) == 0
 
