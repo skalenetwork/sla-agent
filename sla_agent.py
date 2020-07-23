@@ -44,6 +44,8 @@ from tools.logger import init_agent_logger
 from tools.metrics import get_metrics_for_node
 
 MONITORED_NODES_FILEPATH = 'monitored_nodes.json'
+MONITORED_NODES_COUNT = 24
+DISABLE_REPORTING = True
 
 
 def run_threaded(job_func):
@@ -100,14 +102,12 @@ class Monitor:
 
     def generate_monitored_array(self):
         active_ids = self.skale.nodes.get_active_node_ids()
-
         active_ids.remove(self.id)
 
-        print(active_ids)
-        if len(active_ids) <= 24:
+        if len(active_ids) <= MONITORED_NODES_COUNT:
             monitored_ids = active_ids
         else:
-            monitored_ids = random.sample(active_ids, 24)
+            monitored_ids = random.sample(active_ids, MONITORED_NODES_COUNT)
         monitored_nodes = []
         for id in monitored_ids:
             node_info = call_retry(self.skale.nodes.get, id)
@@ -116,7 +116,6 @@ class Monitor:
         return monitored_nodes
 
     def save_monitored_array(self, monitored_nodes):
-
         with open(MONITORED_NODES_FILEPATH, 'w') as json_file:
             json.dump({'last_reward_date': self.get_last_reward_date(),
                        'nodes': monitored_nodes}, json_file)
@@ -158,7 +157,6 @@ class Monitor:
                 for node in nodes
             }
 
-            # for future in concurrent.futures.as_completed(futures_for_node):
             for future in futures_for_node:
                 try:
                     metrics = future.result(timeout=55)
@@ -231,15 +229,17 @@ class Monitor:
         try:
             self.logger.info('New monitor job started...')
             skale = spawn_skale_lib(self.skale)
-            # try:
-            #     self.nodes = call_retry.call(skale.monitors.get_checked_array, self.id)
-            # except Exception as err:
-            #     self.logger.exception(f'Failed to get list of monitored nodes. Error: {err}')
-            #     self.notifier.send(f'Cannot save metrics to database - '
-            #                        f'is MySQL container running? {err}', icon=MsgIcon.ERROR)
-            #     self.logger.info('Monitoring nodes from previous job list')
 
-            self.nodes = self.get_monitored_array()
+            if DISABLE_REPORTING:
+                self.nodes = self.get_monitored_array()
+            else:
+                try:
+                    self.nodes = call_retry.call(skale.monitors.get_checked_array, self.id)
+                except Exception as err:
+                    self.notifier.send(f'Failed to get list of monitored nodes. Error: {err}',
+                                       icon=MsgIcon.ERROR)
+                    self.logger.info('Monitoring nodes from previous job list')
+
             self.validate_nodes(skale, self.nodes)
 
             self.logger.info(f'{threading.enumerate()}')
@@ -285,7 +285,7 @@ class Monitor:
         monitor_schedule.run()
 
         # TODO: enable when move to validator-based monitoring
-        if False:
+        if not DISABLE_REPORTING:
             reporter_w = Worker()
             report_schedule = schedule.every(REPORT_PERIOD).minutes.do(
                 reporter_w.jobqueue.put, self.report_job)
