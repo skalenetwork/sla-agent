@@ -151,7 +151,7 @@ class Monitor:
             futures_for_node = {
                 executor.submit(
                     get_metrics_for_node,
-                    skale, node,
+                    spawn_skale_lib(skale), node,
                     self.is_test_mode
                 ): node
                 for node in nodes
