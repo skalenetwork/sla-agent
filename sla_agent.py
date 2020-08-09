@@ -46,7 +46,7 @@ from tools.metrics import get_metrics_for_node
 SENT_VERDICTS_FILEPATH = 'sent_verdicts.json'
 MONITORED_NODES_FILEPATH = 'monitored_nodes.json'
 MONITORED_NODES_COUNT = 24
-DISABLE_REPORTING = True
+DISABLE_REPORTING = False
 
 
 def run_threaded(job_func):
