@@ -43,6 +43,7 @@ from tools.helper import (
 from tools.logger import init_agent_logger
 from tools.metrics import get_metrics_for_node
 
+SENT_VERDICTS_FILEPATH = 'sent_verdicts.json'
 MONITORED_NODES_FILEPATH = 'monitored_nodes.json'
 MONITORED_NODES_COUNT = 24
 DISABLE_REPORTING = True
@@ -151,7 +152,7 @@ class Monitor:
             futures_for_node = {
                 executor.submit(
                     get_metrics_for_node,
-                    skale, node,
+                    spawn_skale_lib(skale), node,
                     self.is_test_mode
                 ): node
                 for node in nodes
@@ -188,6 +189,13 @@ class Monitor:
                 nodes_for_report.append({'id': node['id'], 'rep_date': node['rep_date']})
         return nodes_for_report
 
+    def lock_send_verdicts(self, skale, verdicts):
+        self.logger.info(f'verdicts: {verdicts}')
+        last_block_number = skale.web3.eth.blockNumber
+        with open(SENT_VERDICTS_FILEPATH, 'w') as json_file:
+            json.dump({'last_block_number': last_block_number,
+                       'verdicts': verdicts}, json_file)
+
     def send_reports(self, skale, nodes_for_report):
         """Send reports for every node from nodes_for_report."""
         self.logger.info(LONG_LINE)
@@ -212,6 +220,7 @@ class Monitor:
                 verdicts.append(verdict)
 
         if len(verdicts) != 0:
+            self.lock_send_verdicts(skale, verdicts)
             try:
                 tx_res = skale.manager.send_verdicts(self.id, verdicts)
             except TransactionError as err:
