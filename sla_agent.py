@@ -189,12 +189,24 @@ class Monitor:
                 nodes_for_report.append({'id': node['id'], 'rep_date': node['rep_date']})
         return nodes_for_report
 
-    def lock_send_verdicts(self, skale, verdicts):
-        self.logger.info(f'verdicts: {verdicts}')
-        last_block_number = skale.web3.eth.blockNumber
+    def save_verdicts(self, verdicts):
+        self.logger.info(f'verdicts to save: {verdicts}')
         with open(SENT_VERDICTS_FILEPATH, 'w') as json_file:
-            json.dump({'last_block_number': last_block_number,
-                       'verdicts': verdicts}, json_file)
+            json.dump({'verdicts': verdicts}, json_file)
+
+    def update_verdicts(self, verdicts):
+        try:
+            with open(SENT_VERDICTS_FILEPATH) as json_file:
+                data = json.load(json_file)
+            saved_verdicts = data['verdicts']
+            print(f'verdicts = {verdicts}')
+            print(f'saved_ver = {saved_verdicts}')
+            verdicts = [verdict for verdict in verdicts if list(verdict) not in saved_verdicts]
+        except FileNotFoundError:
+            self.logger.info('No verdicts file found')
+        self.logger.info(f'verdicts: {verdicts}')
+        self.save_verdicts(verdicts)
+        return verdicts
 
     def send_reports(self, skale, nodes_for_report):
         """Send reports for every node from nodes_for_report."""
@@ -220,7 +232,7 @@ class Monitor:
                 verdicts.append(verdict)
 
         if len(verdicts) != 0:
-            self.lock_send_verdicts(skale, verdicts)
+            verdicts = self.update_verdicts(verdicts)
             try:
                 tx_res = skale.manager.send_verdicts(self.id, verdicts)
             except TransactionError as err:
