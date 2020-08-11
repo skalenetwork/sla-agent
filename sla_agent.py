@@ -190,7 +190,6 @@ class Monitor:
         return nodes_for_report
 
     def save_verdicts(self, verdicts):
-        self.logger.info(f'verdicts to save: {verdicts}')
         with open(SENT_VERDICTS_FILEPATH, 'w') as json_file:
             json.dump({'verdicts': verdicts}, json_file)
 
@@ -199,8 +198,6 @@ class Monitor:
             with open(SENT_VERDICTS_FILEPATH) as json_file:
                 data = json.load(json_file)
             saved_verdicts = data['verdicts']
-            print(f'verdicts = {verdicts}')
-            print(f'saved_ver = {saved_verdicts}')
             verdicts = [verdict for verdict in verdicts if list(verdict) not in saved_verdicts]
         except FileNotFoundError:
             self.logger.info('No verdicts file found')
