@@ -55,6 +55,7 @@ def test_monitor_job_saves_data(monitor):
     assert db.get_count_of_report_records() == 1
 
 
+@pytest.mark.skip(reason="temporary skip because of SKALE manager changes")
 def test_send_reports_neg(skale, monitor):
     print(f'--- Gas Price = {monitor.skale.web3.eth.gasPrice}')
     print(f'ETH balance of account : '
@@ -75,6 +76,7 @@ def test_send_reports_neg(skale, monitor):
         monitor.send_reports(skale, fake_nodes)
 
 
+@pytest.mark.skip(reason="temporary skip because of SKALE manager changes")
 def test_get_reported_nodes_pos(skale, monitor, cur_node_id):
     print(f'Sleep for {TEST_EPOCH - TEST_DELTA} sec')
     time.sleep(TEST_EPOCH - TEST_DELTA)
