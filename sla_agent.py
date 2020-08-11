@@ -201,7 +201,6 @@ class Monitor:
             verdicts = [verdict for verdict in verdicts if list(verdict) not in saved_verdicts]
         except FileNotFoundError:
             self.logger.info('No verdicts file found')
-        self.logger.info(f'verdicts: {verdicts}')
         self.save_verdicts(verdicts)
         return verdicts
 
