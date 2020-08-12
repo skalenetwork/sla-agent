@@ -43,6 +43,7 @@ from tools.helper import (
 from tools.logger import init_agent_logger
 from tools.metrics import get_metrics_for_node
 
+SENT_VERDICTS_FILEPATH = 'sent_verdicts.json'
 MONITORED_NODES_FILEPATH = 'monitored_nodes.json'
 MONITORED_NODES_COUNT = 24
 DISABLE_REPORTING = True
@@ -188,6 +189,21 @@ class Monitor:
                 nodes_for_report.append({'id': node['id'], 'rep_date': node['rep_date']})
         return nodes_for_report
 
+    def save_verdicts(self, verdicts):
+        with open(SENT_VERDICTS_FILEPATH, 'w') as json_file:
+            json.dump({'verdicts': verdicts}, json_file)
+
+    def update_verdicts(self, verdicts):
+        try:
+            with open(SENT_VERDICTS_FILEPATH) as json_file:
+                data = json.load(json_file)
+            saved_verdicts = data['verdicts']
+            verdicts = [verdict for verdict in verdicts if list(verdict) not in saved_verdicts]
+        except FileNotFoundError:
+            self.logger.info('No verdicts file found')
+        self.save_verdicts(verdicts)
+        return verdicts
+
     def send_reports(self, skale, nodes_for_report):
         """Send reports for every node from nodes_for_report."""
         self.logger.info(LONG_LINE)
@@ -212,6 +228,7 @@ class Monitor:
                 verdicts.append(verdict)
 
         if len(verdicts) != 0:
+            verdicts = self.update_verdicts(verdicts)
             try:
                 tx_res = skale.manager.send_verdicts(self.id, verdicts)
             except TransactionError as err:
