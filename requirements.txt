@@ -1,5 +1,5 @@
 skale.py==3.10.dev24
-docker==4.2.2
+docker==4.3.0
 pingparsing==1.0.3
 schedule==0.6.0
 tenacity==6.2.0
