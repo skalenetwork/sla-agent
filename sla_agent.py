@@ -26,16 +26,16 @@ import concurrent.futures
 import json
 import logging
 import queue
+import random
 import socket
 import threading
 import time
 from datetime import datetime
-import random
-import schedule
-from skale.manager_client import spawn_skale_lib
-from skale.transactions.result import TransactionError
 
+import schedule
 from configs import LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD
+from skale.skale_manager import spawn_skale_manager_lib
+from skale.transactions.result import TransactionError
 from tools import db
 from tools.helper import (
     MsgIcon, Notifier, call_retry, check_if_node_is_registered, check_required_balance,
@@ -152,7 +152,7 @@ class Monitor:
             futures_for_node = {
                 executor.submit(
                     get_metrics_for_node,
-                    spawn_skale_lib(skale), node,
+                    spawn_skale_manager_lib(skale), node,
                     self.is_test_mode
                 ): node
                 for node in nodes
@@ -245,7 +245,7 @@ class Monitor:
         """
         try:
             self.logger.info('New monitor job started...')
-            skale = spawn_skale_lib(self.skale)
+            skale = spawn_skale_manager_lib(self.skale)
 
             if DISABLE_REPORTING:
                 self.nodes = self.get_monitored_array()
@@ -273,7 +273,7 @@ class Monitor:
         try:
             self.logger.info('New report job started...')
             self.logger.info(f'{threading.enumerate()}')
-            skale = spawn_skale_lib(self.skale)
+            skale = spawn_skale_manager_lib(self.skale)
 
             self.nodes = call_retry.call(skale.monitors.get_checked_array, self.id)
             nodes_for_report = self.get_reported_nodes(skale, self.nodes)
