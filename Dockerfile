@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y software-properties-common && \
 
 RUN wget https://bootstrap.pypa.io/get-pip.py && \
     python3.8 get-pip.py && \
-    ln -s /usr/bin/python3.7 /usr/local/bin/python3
+    ln -s /usr/bin/python3.8 /usr/local/bin/python3
 
 RUN mkdir /usr/src/sla
 WORKDIR /usr/src/sla
