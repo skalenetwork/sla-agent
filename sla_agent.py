@@ -74,7 +74,9 @@ class Monitor:
         self.logger = logging.getLogger(self.agent_name)
 
         # Hide skale init log output
-        init_skale_logger = logging.getLogger('skale.manager_client')
+        init_skale_logger = logging.getLogger('skale.skale_base')
+        init_skale_logger.setLevel(logging.WARNING)
+        init_skale_logger = logging.getLogger('skale.skale_manager')
         init_skale_logger.setLevel(logging.WARNING)
 
         self.logger.info(f'Initialization of {self.agent_name} started...')
