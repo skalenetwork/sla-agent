@@ -84,13 +84,13 @@ class MsgIcon(Enum):
 class Notifier:
     def __init__(self, node_name, node_id, node_ip):
         self.header = f'Container: sla-agent, Node: {node_name}, ' \
-                      f'ID: {node_id}, IP: {node_ip}\n\n'
+                      f'ID: {node_id}, IP: {node_ip}\n'
 
     def send(self, message, icon=MsgIcon.ERROR):
         """Send message to telegram."""
         logger.info(message)
         header = f'{icon.value} {self.header}'
-        message_data = {"message": header + message}
+        message_data = {"message": [header, message]}
 
         try:
             response = requests.post(url=NOTIFIER_URL, json=message_data)
