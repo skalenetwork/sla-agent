@@ -122,8 +122,18 @@ def get_containers_healthcheck(host):
         return 1
 
     for container in data:
-        if not container['state']['Running'] or container['state']['Paused']:
-            logger.info(f'{container["name"]} is not running or paused')
+        status_ok = True
+        if not container['state']['Running']:
+            logger.info(f'{container["name"]} is not running ({host})')
+            status_ok = False
+        if container['state']['Paused']:
+            logger.info(f'{container["name"]} is paused ({host})')
+            status_ok = False
+        if (container['name'] == 'skale_admin' and
+                container['state']['Health']['Status'] == 'unhealthy'):
+            logger.info(f'{container["name"]} is not healthy ({host})')
+            status_ok = False
+        if not status_ok:
             return 1
     return 0
 
