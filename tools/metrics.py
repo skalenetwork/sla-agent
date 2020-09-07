@@ -58,7 +58,7 @@ def get_schain_endpoint(node_ip, rpc_port):
 def check_schain(schain, node_ip):
     schain_name = schain['name']
     schain_endpoint = get_schain_endpoint(node_ip, schain['http_rpc_port'])
-    logger.info(f'\nChecking {schain_name}: {schain_endpoint}')
+    logger.info(f'Checking s-chain {schain_name}: {schain_endpoint}')
 
     try:
         web3 = Web3(HTTPProvider(schain_endpoint, request_kwargs={'timeout': 10}))
@@ -66,7 +66,7 @@ def check_schain(schain, node_ip):
         logger.info(f"Current block number for {schain_name} = {block_number}")
         return 0
     except Exception as err:
-        logger.error(f'Error occurred while getting block number : {err}')
+        logger.error(f'Error occurred while getting block number: {err}')
         return 1
 
 
