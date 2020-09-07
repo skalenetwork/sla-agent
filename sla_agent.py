@@ -43,9 +43,7 @@ from tools.helper import (
 from tools.logger import init_agent_logger
 from tools.metrics import get_metrics_for_node
 
-# from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED
 from apscheduler.schedulers.background import BackgroundScheduler
-# from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
 
 SENT_VERDICTS_FILEPATH = 'sent_verdicts.json'
 MONITORED_NODES_FILEPATH = 'monitored_nodes.json'
@@ -155,16 +153,14 @@ class Monitor:
             self.logger.info(f'Number of nodes for monitoring: {len(nodes)}')
             self.logger.info(f'Nodes for monitoring : {nodes}')
 
-        # with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(nodes)),
-        #                                            thread_name_prefix='MonThread') as executor:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(nodes))) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(nodes)),
+                                                   thread_name_prefix='MonThread') as executor:
 
             futures_for_node = {
                 executor.submit(
                     get_metrics_for_node,
                     spawn_skale_manager_lib(skale), node,
-                    # self.is_test_mode
-                    False
+                    self.is_test_mode
                 ): node
                 for node in nodes
             }
@@ -306,24 +302,15 @@ class Monitor:
 
     def run(self) -> None:
         """Starts sla agent."""
-        # monitor_w = Worker()
-        # monitor_schedule = schedule.every(MONITOR_PERIOD).minutes.do(
-        #     monitor_w.jobqueue.put, self.monitor_job)
-        # threading.Thread(target=monitor_w.worker, name='Monitor').start()
-        # monitor_schedule.run()
 
         self.scheduler.add_job(self.monitor_job, 'interval', minutes=MONITOR_PERIOD)
-        self.scheduler.print_jobs()
-        # self.scheduler.add_listener(self.job_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
-        self.scheduler.start()
 
         # TODO: enable when move to validator-based monitoring
         if not DISABLE_REPORTING:
-            reporter_w = Worker()
-            report_schedule = schedule.every(REPORT_PERIOD).minutes.do(
-                reporter_w.jobqueue.put, self.report_job)
-            threading.Thread(target=reporter_w.worker, name='Reporter').start()
-            report_schedule.run()
+            self.scheduler.add_job(self.report_job, 'interval', minutes=REPORT_PERIOD)
+
+        self.scheduler.print_jobs()
+        self.scheduler.start()
 
         while True:
             schedule.run_pending()
