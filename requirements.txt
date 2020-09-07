@@ -5,3 +5,4 @@ schedule==0.6.0
 tenacity==6.2.0
 peewee==3.13.3
 PyMySQL==0.10.0
+apscheduler==3.6.3
