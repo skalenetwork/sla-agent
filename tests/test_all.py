@@ -21,9 +21,10 @@ import time
 from datetime import datetime
 
 import pytest
+from skale.transactions.result import TransactionError
+
 import sla_agent as sla
 from configs import LONG_LINE
-from skale.transactions.result import TransactionError
 from tests.constants import FAKE_IP, FAKE_REPORT_DATE
 from tests.prepare_validator import TEST_DELTA, TEST_EPOCH, get_active_ids
 from tools import db

@@ -1,9 +1,10 @@
 """ SKALE config test """
 
 import pytest
+
 from tests.constants import N_TEST_NODES
-from tests.prepare_validator import (
-    create_dirs, create_set_of_nodes, get_active_ids, init_skale_with_w3_wallet)
+from tests.prepare_validator import (create_dirs, create_set_of_nodes,
+                                     get_active_ids, init_skale_with_w3_wallet)
 
 
 @pytest.fixture(scope="session")

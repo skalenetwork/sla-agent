@@ -33,17 +33,18 @@ import time
 from datetime import datetime
 
 import schedule
-from configs import LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD
+from apscheduler.schedulers.background import BackgroundScheduler
 from skale.skale_manager import spawn_skale_manager_lib
 from skale.transactions.result import TransactionError
+
+from configs import (LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH,
+                     REPORT_PERIOD)
 from tools import db
-from tools.helper import (
-    MsgIcon, Notifier, call_retry, check_if_node_is_registered, check_required_balance,
-    get_id_from_config, init_skale)
+from tools.helper import (MsgIcon, Notifier, call_retry,
+                          check_if_node_is_registered, check_required_balance,
+                          get_id_from_config, init_skale)
 from tools.logger import init_agent_logger
 from tools.metrics import get_metrics_for_node
-
-from apscheduler.schedulers.background import BackgroundScheduler
 
 SENT_VERDICTS_FILEPATH = 'sent_verdicts.json'
 MONITORED_NODES_FILEPATH = 'monitored_nodes.json'
