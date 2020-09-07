@@ -43,6 +43,10 @@ from tools.helper import (
 from tools.logger import init_agent_logger
 from tools.metrics import get_metrics_for_node
 
+# from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED
+from apscheduler.schedulers.background import BackgroundScheduler
+# from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
+
 SENT_VERDICTS_FILEPATH = 'sent_verdicts.json'
 MONITORED_NODES_FILEPATH = 'monitored_nodes.json'
 MONITORED_NODES_COUNT = 24
@@ -99,6 +103,8 @@ class Monitor:
         self.nodes = []
         self.reward_period = call_retry.call(self.skale.constants_holder.get_reward_period)
 
+        self.scheduler = BackgroundScheduler(timezone='UTC')
+
     def get_last_reward_date(self):
         node_info = call_retry(self.skale.nodes.get, self.id)
         return node_info['last_reward_date']
@@ -149,13 +155,16 @@ class Monitor:
             self.logger.info(f'Number of nodes for monitoring: {len(nodes)}')
             self.logger.info(f'Nodes for monitoring : {nodes}')
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(nodes)),
-                                                   thread_name_prefix='MonThread') as executor:
+        # with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(nodes)),
+        #                                            thread_name_prefix='MonThread') as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(nodes))) as executor:
+
             futures_for_node = {
                 executor.submit(
                     get_metrics_for_node,
                     spawn_skale_manager_lib(skale), node,
-                    self.is_test_mode
+                    # self.is_test_mode
+                    False
                 ): node
                 for node in nodes
             }
@@ -297,11 +306,16 @@ class Monitor:
 
     def run(self) -> None:
         """Starts sla agent."""
-        monitor_w = Worker()
-        monitor_schedule = schedule.every(MONITOR_PERIOD).minutes.do(
-            monitor_w.jobqueue.put, self.monitor_job)
-        threading.Thread(target=monitor_w.worker, name='Monitor').start()
-        monitor_schedule.run()
+        # monitor_w = Worker()
+        # monitor_schedule = schedule.every(MONITOR_PERIOD).minutes.do(
+        #     monitor_w.jobqueue.put, self.monitor_job)
+        # threading.Thread(target=monitor_w.worker, name='Monitor').start()
+        # monitor_schedule.run()
+
+        self.scheduler.add_job(self.monitor_job, 'interval', minutes=MONITOR_PERIOD)
+        self.scheduler.print_jobs()
+        # self.scheduler.add_listener(self.job_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
+        self.scheduler.start()
 
         # TODO: enable when move to validator-based monitoring
         if not DISABLE_REPORTING:
