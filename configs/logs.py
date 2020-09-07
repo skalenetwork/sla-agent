@@ -1,4 +1,5 @@
 import os
+
 from configs import NODE_DATA_PATH
 
 LOG_FOLDER_NAME = 'log'

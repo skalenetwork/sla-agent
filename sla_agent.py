@@ -33,13 +33,16 @@ import time
 from datetime import datetime
 
 import schedule
-from configs import LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD
+from apscheduler.schedulers.background import BackgroundScheduler
 from skale.skale_manager import spawn_skale_manager_lib
 from skale.transactions.result import TransactionError
+
+from configs import (LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH,
+                     REPORT_PERIOD)
 from tools import db
-from tools.helper import (
-    MsgIcon, Notifier, call_retry, check_if_node_is_registered, check_required_balance,
-    get_id_from_config, init_skale)
+from tools.helper import (MsgIcon, Notifier, call_retry,
+                          check_if_node_is_registered, check_required_balance,
+                          get_id_from_config, init_skale)
 from tools.logger import init_agent_logger
 from tools.metrics import get_metrics_for_node
 
@@ -99,6 +102,8 @@ class Monitor:
         self.nodes = []
         self.reward_period = call_retry.call(self.skale.constants_holder.get_reward_period)
 
+        self.scheduler = BackgroundScheduler(timezone='UTC')
+
     def get_last_reward_date(self):
         node_info = call_retry(self.skale.nodes.get, self.id)
         return node_info['last_reward_date']
@@ -151,6 +156,7 @@ class Monitor:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(nodes)),
                                                    thread_name_prefix='MonThread') as executor:
+
             futures_for_node = {
                 executor.submit(
                     get_metrics_for_node,
@@ -297,19 +303,15 @@ class Monitor:
 
     def run(self) -> None:
         """Starts sla agent."""
-        monitor_w = Worker()
-        monitor_schedule = schedule.every(MONITOR_PERIOD).minutes.do(
-            monitor_w.jobqueue.put, self.monitor_job)
-        threading.Thread(target=monitor_w.worker, name='Monitor').start()
-        monitor_schedule.run()
+
+        self.scheduler.add_job(self.monitor_job, 'interval', minutes=MONITOR_PERIOD)
 
         # TODO: enable when move to validator-based monitoring
         if not DISABLE_REPORTING:
-            reporter_w = Worker()
-            report_schedule = schedule.every(REPORT_PERIOD).minutes.do(
-                reporter_w.jobqueue.put, self.report_job)
-            threading.Thread(target=reporter_w.worker, name='Reporter').start()
-            report_schedule.run()
+            self.scheduler.add_job(self.report_job, 'interval', minutes=REPORT_PERIOD)
+
+        self.scheduler.print_jobs()
+        self.scheduler.start()
 
         while True:
             schedule.run_pending()
