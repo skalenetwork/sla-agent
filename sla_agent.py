@@ -25,14 +25,12 @@ when it's time to send it
 import concurrent.futures
 import json
 import logging
-import queue
 import random
 import socket
 import threading
 import time
 from datetime import datetime
 
-import schedule
 from apscheduler.schedulers.background import BackgroundScheduler
 from skale.skale_manager import spawn_skale_manager_lib
 from skale.transactions.result import TransactionError
@@ -50,23 +48,6 @@ SENT_VERDICTS_FILEPATH = 'sent_verdicts.json'
 MONITORED_NODES_FILEPATH = 'monitored_nodes.json'
 MONITORED_NODES_COUNT = 24
 DISABLE_REPORTING = True
-
-
-def run_threaded(job_func):
-    job_thread = threading.Thread(target=job_func)
-    job_thread.start()
-
-
-class Worker:
-
-    def __init__(self):
-        self.jobqueue = queue.Queue()
-
-    def worker(self):
-        while True:
-            job_func = self.jobqueue.get()
-            job_func()
-            self.jobqueue.task_done()
 
 
 class Monitor:
@@ -314,7 +295,6 @@ class Monitor:
         self.scheduler.start()
 
         while True:
-            schedule.run_pending()
             time.sleep(1)
 
 

@@ -58,7 +58,7 @@ def get_schain_endpoint(node_ip, rpc_port):
 def check_schain(schain, node_ip):
     schain_name = schain['name']
     schain_endpoint = get_schain_endpoint(node_ip, schain['http_rpc_port'])
-    logger.info(f'\nChecking {schain_name}: {schain_endpoint}')
+    logger.info(f'Checking s-chain {schain_name}: {schain_endpoint}')
 
     try:
         web3 = Web3(HTTPProvider(schain_endpoint, request_kwargs={'timeout': 10}))
@@ -66,7 +66,7 @@ def check_schain(schain, node_ip):
         logger.info(f"Current block number for {schain_name} = {block_number}")
         return 0
     except Exception as err:
-        logger.error(f'Error occurred while getting block number : {err}')
+        logger.error(f'Error occurred while getting block number: {err}')
         return 1
 
 
@@ -122,10 +122,24 @@ def get_containers_healthcheck(host):
         return 1
 
     for container in data:
-        if not container['state']['Running'] or container['state']['Paused']:
-            logger.info(f'{container["name"]} is not running or paused')
+        if not is_container_ok(container, host):
             return 1
     return 0
+
+
+def is_container_ok(container, host):
+    cont_status = True
+    if not container['state']['Running']:
+        logger.info(f'{container["name"]} is not running ({host})')
+        cont_status = False
+    if container['state']['Paused']:
+        logger.info(f'{container["name"]} is paused ({host})')
+        cont_status = False
+    if (container['name'] == 'skale_admin' and
+            container['state']['Health']['Status'] == 'unhealthy'):
+        logger.info(f'{container["name"]} is not healthy ({host})')
+        cont_status = False
+    return cont_status
 
 
 def get_ping_node_results(host) -> dict:
