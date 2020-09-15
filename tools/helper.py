@@ -27,7 +27,7 @@ import tenacity
 from skale import Skale
 from skale.wallets import RPCWallet
 
-from configs import MIN_ETH_AMOUNT, NOTIFIER_URL
+from configs import NOTIFIER_URL
 from configs.web3 import ABI_FILEPATH, ENDPOINT
 from tools.exceptions import NodeNotFoundException
 
@@ -43,18 +43,12 @@ def init_skale():
 
 
 def check_if_node_is_registered(skale, node_id):
-    if node_id not in skale.nodes.get_active_node_ids():
+    if 0 <= node_id < skale.nodes.get_nodes_number():
+        return True
+    else:
         err_msg = f'There is no Node with ID = {node_id} in SKALE manager'
         logger.error(err_msg)
         raise NodeNotFoundException(err_msg)
-    return True
-
-
-def check_required_balance(skale, notifier):
-    address = skale.wallet.address
-    eth_bal_before_tx = skale.web3.eth.getBalance(address)
-    if eth_bal_before_tx < MIN_ETH_AMOUNT:
-        notifier.send(f'ETH balance: {eth_bal_before_tx} is less than {MIN_ETH_AMOUNT}')
 
 
 @tenacity.retry(
