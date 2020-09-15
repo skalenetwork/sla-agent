@@ -43,12 +43,12 @@ def init_skale():
 
 
 def check_if_node_is_registered(skale, node_id):
-    nodes_number = skale.nodes.get_nodes_number()
-    if node_id not in range(0, nodes_number):
+    if 0 <= node_id < skale.nodes.get_nodes_number():
+        return True
+    else:
         err_msg = f'There is no Node with ID = {node_id} in SKALE manager'
         logger.error(err_msg)
         raise NodeNotFoundException(err_msg)
-    return True
 
 
 @tenacity.retry(
