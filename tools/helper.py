@@ -43,7 +43,8 @@ def init_skale():
 
 
 def check_if_node_is_registered(skale, node_id):
-    if node_id not in skale.nodes.get_active_node_ids():
+    nodes_number = skale.nodes.get_nodes_number()
+    if node_id not in range(0, nodes_number):
         err_msg = f'There is no Node with ID = {node_id} in SKALE manager'
         logger.error(err_msg)
         raise NodeNotFoundException(err_msg)
