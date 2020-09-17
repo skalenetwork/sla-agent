@@ -21,10 +21,6 @@
 class NodeNotFoundException(Exception):
     """Raised when Node ID doesn't exist in SKALE Manager."""
 
-    pass
 
-
-class TxCallFailedException(Exception):
-    """Raised when sendVerdict transaction call (dry-run) failed."""
-
-    pass
+class NoInternetConnectionException(Exception):
+    """Raised when no internet connection detected."""

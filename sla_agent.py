@@ -22,28 +22,32 @@ SLA agent runs on every node of SKALE network, periodically gets a list of nodes
 from SKALE Manager (SM), checks its health metrics and sends transactions with average metrics to SM
 when it's time to send it
 """
+import concurrent.futures
+import json
 import logging
-import sys
+import random
+import socket
 import threading
 import time
 from datetime import datetime
 
-import schedule
-from skale.manager_client import spawn_skale_lib
+from apscheduler.schedulers.background import BackgroundScheduler
+from skale.skale_manager import spawn_skale_manager_lib
+from skale.transactions.result import TransactionError
 
-from configs import (
-    GOOD_IP, LONG_DOUBLE_LINE, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH, REPORT_PERIOD)
+from configs import (LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH,
+                     REPORT_PERIOD)
 from tools import db
-from tools.helper import (
-    call_tx_retry, check_if_node_is_registered, get_id_from_config, init_skale, regular_call_retry,
-    send_tx_retry)
+from tools.helper import (MsgIcon, Notifier, call_retry,
+                          check_if_node_is_registered, get_id_from_config,
+                          init_skale)
 from tools.logger import init_agent_logger
-from tools.metrics import get_metrics_for_node, get_ping_node_results
+from tools.metrics import get_metrics_for_node
 
-
-def run_threaded(job_func):
-    job_thread = threading.Thread(target=job_func)
-    job_thread.start()
+SENT_VERDICTS_FILEPATH = 'sent_verdicts.json'
+MONITORED_NODES_FILEPATH = 'monitored_nodes.json'
+MONITORED_NODES_COUNT = 24
+DISABLE_REPORTING = True
 
 
 class Monitor:
@@ -52,6 +56,12 @@ class Monitor:
         self.agent_name = self.__class__.__name__.lower()
         init_agent_logger(self.agent_name, node_id)
         self.logger = logging.getLogger(self.agent_name)
+
+        # Hide skale init log output
+        init_skale_logger = logging.getLogger('skale.skale_base')
+        init_skale_logger.setLevel(logging.WARNING)
+        init_skale_logger = logging.getLogger('skale.skale_manager')
+        init_skale_logger.setLevel(logging.WARNING)
 
         self.logger.info(f'Initialization of {self.agent_name} started...')
         if node_id is None:
@@ -63,38 +73,98 @@ class Monitor:
         self.skale = skale
 
         check_if_node_is_registered(self.skale, self.id)
+
+        node_info = call_retry(self.skale.nodes.get, self.id)
+        self.notifier = Notifier(node_info['name'], self.id, socket.inet_ntoa(node_info['ip']))
+        self.notifier.send('SLA agent started', icon=MsgIcon.INFO)
+
         self.logger.info(f'Initialization of {self.agent_name} is completed. Node ID = {self.id}')
 
         self.nodes = []
-        self.reward_period = regular_call_retry.call(self.skale.constants_holder.get_reward_period)
+        self.reward_period = call_retry.call(self.skale.constants_holder.get_reward_period)
+
+        self.scheduler = BackgroundScheduler(timezone='UTC')
+
+    def get_last_reward_date(self):
+        node_info = call_retry(self.skale.nodes.get, self.id)
+        return node_info['last_reward_date']
+
+    def generate_monitored_array(self):
+        active_ids = self.skale.nodes.get_active_node_ids()
+        active_ids.remove(self.id)
+
+        if len(active_ids) <= MONITORED_NODES_COUNT:
+            monitored_ids = active_ids
+        else:
+            monitored_ids = random.sample(active_ids, MONITORED_NODES_COUNT)
+        monitored_nodes = []
+        for id in monitored_ids:
+            node_info = call_retry(self.skale.nodes.get, id)
+            ip = socket.inet_ntoa(node_info['ip'])
+            monitored_nodes.append({'id': id, 'ip': ip})
+        return monitored_nodes
+
+    def save_monitored_array(self, monitored_nodes):
+        with open(MONITORED_NODES_FILEPATH, 'w') as json_file:
+            json.dump({'last_reward_date': self.get_last_reward_date(),
+                       'nodes': monitored_nodes}, json_file)
+
+    def get_monitored_array(self):
+        try:
+            with open(MONITORED_NODES_FILEPATH) as json_file:
+                data = json.load(json_file)
+            if self.get_last_reward_date() > data['last_reward_date']:
+                monitored_array = self.generate_monitored_array()
+                self.save_monitored_array(monitored_array)
+            else:
+                monitored_array = data['nodes']
+            return monitored_array
+
+        except FileNotFoundError:
+            self.logger.info('No json file with monitored nodes found. Creating a new one')
+            monitored_array = self.generate_monitored_array()
+            self.save_monitored_array(monitored_array)
+            return monitored_array
 
     def validate_nodes(self, skale, nodes):
         """Validate nodes and returns a list of nodes to be reported."""
         self.logger.info(LONG_LINE)
         if len(nodes) == 0:
-            self.logger.info(f'No nodes for monitoring')
+            self.logger.info('No nodes for monitoring')
         else:
             self.logger.info(f'Number of nodes for monitoring: {len(nodes)}')
             self.logger.info(f'Nodes for monitoring : {nodes}')
 
-        for node in nodes:
-            if not get_ping_node_results(GOOD_IP)['is_offline']:
-                metrics = get_metrics_for_node(skale, node, self.is_test_mode)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(nodes)),
+                                                   thread_name_prefix='MonThread') as executor:
+
+            futures_for_node = {
+                executor.submit(
+                    get_metrics_for_node,
+                    spawn_skale_manager_lib(skale), node,
+                    self.is_test_mode
+                ): node
+                for node in nodes
+            }
+
+            for future in futures_for_node:
                 try:
-                    db.save_metrics_to_db(self.id, node['id'],
-                                          metrics['is_offline'], metrics['latency'])
+                    metrics = future.result(timeout=55)
                 except Exception as err:
-                    self.logger.error(f'Cannot save metrics to database - '
-                                      f'is MySQL container running? {err}')
-            else:
-                self.logger.info(f'Cannot ping {GOOD_IP} - is network ok? '
-                                 f'Skipping monitoring node {node["id"]}')
-                # TODO: Notify skale-admin
+                    self.logger.exception(f'Cannot get metrics for Node id = '
+                                          f'{futures_for_node[future]["id"]}: {err}')
+                else:
+                    try:
+                        db.save_metrics_to_db(self.id, futures_for_node[future]['id'],
+                                              metrics['is_offline'], metrics['latency'])
+                    except Exception as err:
+                        self.notifier.send(f'Cannot save metrics to database - '
+                                           f'is MySQL container running? {err}', icon=MsgIcon.ERROR)
 
     def get_reported_nodes(self, skale, nodes) -> list:
         """Returns a list of nodes to be reported."""
         last_block_number = skale.web3.eth.blockNumber
-        block_data = regular_call_retry.call(skale.web3.eth.getBlock, last_block_number)
+        block_data = call_retry.call(skale.web3.eth.getBlock, last_block_number)
         block_timestamp = datetime.utcfromtimestamp(block_data['timestamp'])
         self.logger.info(f'Timestamp of current block: {block_timestamp}')
 
@@ -108,14 +178,26 @@ class Monitor:
                 nodes_for_report.append({'id': node['id'], 'rep_date': node['rep_date']})
         return nodes_for_report
 
+    def save_verdicts(self, verdicts):
+        with open(SENT_VERDICTS_FILEPATH, 'w') as json_file:
+            json.dump({'verdicts': verdicts}, json_file)
+
+    def update_verdicts(self, verdicts):
+        try:
+            with open(SENT_VERDICTS_FILEPATH) as json_file:
+                data = json.load(json_file)
+            saved_verdicts = data['verdicts']
+            verdicts = [verdict for verdict in verdicts if list(verdict) not in saved_verdicts]
+        except FileNotFoundError:
+            self.logger.info('No verdicts file found')
+        self.save_verdicts(verdicts)
+        return verdicts
+
     def send_reports(self, skale, nodes_for_report):
         """Send reports for every node from nodes_for_report."""
         self.logger.info(LONG_LINE)
         err_status = 0
-
-        ids = []
-        latencies = []
-        downtimes = []
+        verdicts = []
         for node in nodes_for_report:
             start_date = node['rep_date'] - self.reward_period
             self.logger.info(f'Getting month metrics for node id = {node["id"]}:')
@@ -127,98 +209,95 @@ class Monitor:
                                                         datetime.utcfromtimestamp(start_date),
                                                         datetime.utcfromtimestamp(node['rep_date']))
             except Exception as err:
-                self.logger.error(f'Failed to get month metrics from db for node id = '
-                                  f'{node["id"]}: {err}')
-                # TODO: Notify skale-admin
+                self.notifier.send(f'Failed to get month metrics from db for node id = '
+                                   f'{node["id"]}: {err}', icon=MsgIcon.ERROR)
             else:
                 self.logger.info(f'Epoch metrics for node id = {node["id"]}: {metrics}')
-                ids.append(node['id'])
-                downtimes.append(metrics['downtime'])
-                latencies.append(metrics['latency'])
+                verdict = (node['id'], metrics['downtime'], metrics['latency'])
+                verdicts.append(verdict)
 
-        if len(ids) == len(downtimes) == len(latencies) and len(ids) != 0:
-            self.logger.info(f'+++ ids = {ids}, downtimes = {downtimes}, latencies = {latencies}')
-
-            # Try dry-run (call transaction)
-            call_tx_retry.call(skale.manager.send_verdicts,
-                               self.id, ids, downtimes, latencies, dry_run=True)
-            # Send transaction
-            tx_res = send_tx_retry.call(skale.manager.send_verdicts,
-                                        self.id, ids, downtimes, latencies, wait_for=True)
-            tx_res.raise_for_status()
-
-            tx_hash = tx_res.receipt['transactionHash'].hex()
-            self.logger.info('The report was successfully sent')
-            h_receipt = skale.monitors.contract.events.VerdictWasSent(
-            ).processReceipt(tx_res.receipt)
-            self.logger.info(LONG_LINE)
-            self.logger.info(h_receipt)
-            args = h_receipt[0]['args']
+        if len(verdicts) != 0:
+            verdicts = self.update_verdicts(verdicts)
             try:
-                db.save_report_event(datetime.utcfromtimestamp(args['time']),
-                                     str(tx_hash), args['fromMonitorIndex'],
-                                     args['toNodeIndex'], args['downtime'],
-                                     args['latency'], tx_res.receipt["gasUsed"])
-            except Exception as err:
-                self.logger.exception(f'Failed to save report event data. {err}')
-            self.logger.debug(f'Receipt: {tx_res.receipt}')
-            self.logger.info(LONG_DOUBLE_LINE)
+                tx_res = skale.manager.send_verdicts(self.id, verdicts)
+            except TransactionError as err:
+                self.notifier.send(str(err), icon=MsgIcon.CRITICAL)
+                raise
+
+            self.logger.info('The report was successfully sent')
+            self.logger.info(f'Tx hash: {tx_res.receipt}')
         return err_status
 
     def monitor_job(self) -> None:
         """
         Periodic job for monitoring nodes.
         """
-        self.logger.info('New monitor job started...')
-        skale = spawn_skale_lib(self.skale)
         try:
-            self.nodes = regular_call_retry.call(skale.monitors_data.get_checked_array, self.id)
+            self.logger.info('New monitor job started...')
+            skale = spawn_skale_manager_lib(self.skale)
+
+            if DISABLE_REPORTING:
+                self.nodes = self.get_monitored_array()
+            else:
+                try:
+                    self.nodes = call_retry.call(skale.monitors.get_checked_array, self.id)
+                except Exception as err:
+                    self.notifier.send(f'Failed to get list of monitored nodes. Error: {err}',
+                                       icon=MsgIcon.ERROR)
+                    self.logger.info('Monitoring nodes from previous job list')
+
+            self.validate_nodes(skale, self.nodes)
+
+            self.logger.info(f'{threading.enumerate()}')
+            self.logger.info('Monitor job finished.')
+
         except Exception as err:
-            self.logger.exception(f'Failed to get list of monitored nodes. Error: {err}')
-            self.logger.info('Monitoring nodes from previous job list')
-            # TODO: Notify skale-admin
+            self.notifier.send(f'Error occurred during monitoring job: {err}', icon=MsgIcon.ERROR)
+            self.logger.exception(err)
 
-        self.validate_nodes(skale, self.nodes)
-
-        self.logger.info('Monitor job finished...')
-
-    def report_job(self) -> None:
+    def report_job(self) -> bool:
         """
         Periodic job for sending reports.
         """
-        self.logger.info('New report job started...')
-        skale = spawn_skale_lib(self.skale)
+        try:
+            self.logger.info('New report job started...')
+            self.logger.info(f'{threading.enumerate()}')
+            skale = spawn_skale_manager_lib(self.skale)
 
-        self.nodes = regular_call_retry.call(skale.monitors_data.get_checked_array, self.id)
-        nodes_for_report = self.get_reported_nodes(skale, self.nodes)
+            self.nodes = call_retry.call(skale.monitors.get_checked_array, self.id)
+            nodes_for_report = self.get_reported_nodes(skale, self.nodes)
 
-        if len(nodes_for_report) > 0:
-            self.logger.info(f'Nodes for report ({len(nodes_for_report)}): {nodes_for_report}')
-            self.send_reports(skale, nodes_for_report)
+            if len(nodes_for_report) > 0:
+                self.logger.info(f'Nodes for report ({len(nodes_for_report)}): {nodes_for_report}')
+                self.send_reports(skale, nodes_for_report)
+            else:
+                self.logger.info('No nodes to be reported on')
+
+            self.logger.info('Report job finished.')
+        except Exception as err:
+            self.notifier.send(f'Error occurred during report job: {err}', icon=MsgIcon.ERROR)
+            self.logger.exception(err)
+            return False
         else:
-            self.logger.info(f'- No nodes to be reported on')
-
-        self.logger.info('Report job finished...')
+            return True
 
     def run(self) -> None:
         """Starts sla agent."""
-        self.logger.debug(f'{self.agent_name} started')
-        run_threaded(self.monitor_job)
-        run_threaded(self.report_job)
-        schedule.every(MONITOR_PERIOD).minutes.do(run_threaded, self.monitor_job)
-        schedule.every(REPORT_PERIOD).minutes.do(run_threaded, self.report_job)
+
+        self.scheduler.add_job(self.monitor_job, 'interval', minutes=MONITOR_PERIOD)
+
+        # TODO: enable when move to validator-based monitoring
+        if not DISABLE_REPORTING:
+            self.scheduler.add_job(self.report_job, 'interval', minutes=REPORT_PERIOD)
+
+        self.scheduler.print_jobs()
+        self.scheduler.start()
+
         while True:
-            schedule.run_pending()
             time.sleep(1)
 
 
 if __name__ == '__main__':
-
-    if len(sys.argv) > 1 and sys.argv[1].isdecimal():
-        node_id = int(sys.argv[1])
-    else:
-        node_id = None
-
-    skale = init_skale(node_id)
-    monitor = Monitor(skale, node_id)
+    skale = init_skale()
+    monitor = Monitor(skale)
     monitor.run()
