@@ -1,4 +1,5 @@
 import os
+
 from configs import CONTRACTS_INFO_FOLDER, MANAGER_CONTRACTS_INFO_NAME
 
 ENDPOINT = os.environ['ENDPOINT']

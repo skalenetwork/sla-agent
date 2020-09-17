@@ -20,7 +20,8 @@
 
 import logging
 
-from peewee import BooleanField, CharField, DateTimeField, IntegerField, Model, MySQLDatabase, fn
+from peewee import (BooleanField, DateTimeField, IntegerField, Model,
+                    MySQLDatabase, fn)
 
 from configs.db import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
 
@@ -48,19 +49,6 @@ class Report(BaseModel):
     stamp = DateTimeField()
 
 
-class ReportEvent(BaseModel):
-    my_id = IntegerField()
-    target_id = IntegerField()
-    tx_dt = DateTimeField()
-    tx_hash = CharField()
-    downtime = IntegerField()
-    latency = IntegerField()
-    gas_used = IntegerField()
-
-    class Meta:
-        table_name = 'report_event'
-
-
 @dbhandle.connection_context()
 def save_metrics_to_db(my_id, target_id, is_offline, latency):
     """Save metrics (downtime and latency) to database."""
@@ -69,20 +57,6 @@ def save_metrics_to_db(my_id, target_id, is_offline, latency):
                     is_offline=is_offline,
                     latency=latency)
     report.save()
-
-
-@dbhandle.connection_context()
-def save_report_event(tx_dt, tx_hash, my_id, target_id, downtime, latency, gas_used):
-    """Save bounty events data to database."""
-    data = ReportEvent(my_id=my_id,
-                       target_id=target_id,
-                       tx_dt=tx_dt,
-                       downtime=downtime,
-                       latency=latency,
-                       gas_used=gas_used,
-                       tx_hash=tx_hash)
-
-    data.save()
 
 
 @dbhandle.connection_context()
@@ -117,10 +91,10 @@ def clear_all_reports():
     logger.info(f'{nrows} records deleted')
 
 
-@dbhandle.connection_context()
-def clear_all_report_events():
-    nrows = ReportEvent.delete().execute()
-    logger.info(f'{nrows} records deleted')
+# @dbhandle.connection_context()
+# def clear_all_report_events():
+#     nrows = ReportEvent.delete().execute()
+#     logger.info(f'{nrows} records deleted')
 
 
 @dbhandle.connection_context()
@@ -128,6 +102,6 @@ def get_count_of_report_records():
     return Report.select().count()
 
 
-@dbhandle.connection_context()
-def get_count_of_report_events_records():
-    return ReportEvent.select().count()
+# @dbhandle.connection_context()
+# def get_count_of_report_events_records():
+#     return ReportEvent.select().count()

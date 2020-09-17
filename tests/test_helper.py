@@ -17,15 +17,17 @@
 #   You should have received a copy of the GNU Affero General Public License
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import json
 
-from tools.config_storage import ConfigStorage
+from configs import NODE_CONFIG_FILEPATH
 from tools.helper import get_id_from_config
 
 
 def test_get_id_from_config():
-    config_file_name = 'test_node_config'
     node_index = 1
-    config_node = ConfigStorage(config_file_name)
-    config_node.update({'node_id': node_index})
-    node_id = get_id_from_config(config_file_name)
+
+    with open(NODE_CONFIG_FILEPATH, 'w') as json_file:
+        json.dump({'node_id': node_index}, json_file)
+
+    node_id = get_id_from_config(NODE_CONFIG_FILEPATH)
     assert node_id == node_index
