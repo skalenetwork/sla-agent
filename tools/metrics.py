@@ -71,7 +71,7 @@ def check_schain(schain, node_ip):
 
 
 def check_schains_for_node(skale, node_id, node_ip):
-    raw_schains = skale.schains.get_schains_for_node(node_id)
+    raw_schains = skale.schains.get_active_schains_for_node(node_id)
 
     node_info = skale.nodes.get(node_id)
     node_base_port = node_info['port']
