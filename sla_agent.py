@@ -126,7 +126,7 @@ class Monitor:
             self.save_monitored_array(monitored_array)
             return monitored_array
 
-    def validate_nodes(self, skale, nodes):
+    def check_nodes(self, skale, nodes):
         """Validate nodes and returns a list of nodes to be reported."""
         self.logger.info(LONG_LINE)
         if len(nodes) == 0:
@@ -233,7 +233,7 @@ class Monitor:
                                        icon=MsgIcon.ERROR)
                     self.logger.info('Monitoring nodes from previous job list')
 
-            self.validate_nodes(skale, self.nodes)
+            self.check_nodes(skale, self.nodes)
 
             self.logger.info(f'{threading.enumerate()}')
             self.logger.info('Monitor job finished.')
