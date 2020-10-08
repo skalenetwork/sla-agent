@@ -22,7 +22,7 @@ SLA agent runs on every node of SKALE network, periodically gets a list of nodes
 from SKALE Manager (SM), checks its health metrics and sends transactions with average metrics to SM
 when it's time to send it
 """
-import concurrent.futures
+# import concurrent.futures
 import json
 import logging
 import random
@@ -35,14 +35,14 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from skale.skale_manager import spawn_skale_manager_lib
 from skale.transactions.result import TransactionError
 
-from configs import (LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH,
+from configs import (GOOD_IP, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH,
                      REPORT_PERIOD)
 from tools import db
 from tools.helper import (MsgIcon, Notifier, call_retry,
                           check_if_node_is_registered, get_id_from_config,
                           init_skale)
 from tools.logger import init_agent_logger
-from tools.metrics import get_metrics_for_node
+from tools.metrics import get_metrics_for_node, get_ping_node_results
 
 SENT_VERDICTS_FILEPATH = 'sent_verdicts.json'
 MONITORED_NODES_FILEPATH = 'monitored_nodes.json'
@@ -135,31 +135,18 @@ class Monitor:
             self.logger.info(f'Number of nodes for monitoring: {len(nodes)}')
             self.logger.info(f'Nodes for monitoring : {nodes}')
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(nodes)),
-                                                   thread_name_prefix='MonThread') as executor:
-
-            futures_for_node = {
-                executor.submit(
-                    get_metrics_for_node,
-                    spawn_skale_manager_lib(skale), node,
-                    self.is_test_mode
-                ): node
-                for node in nodes
-            }
-
-            for future in futures_for_node:
+        for node in nodes:
+            if not get_ping_node_results(GOOD_IP)['is_offline']:
+                metrics = get_metrics_for_node(skale, node, self.is_test_mode)
                 try:
-                    metrics = future.result(timeout=55)
+                    db.save_metrics_to_db(self.id, node['id'],
+                                          metrics['is_offline'], metrics['latency'])
                 except Exception as err:
-                    self.logger.exception(f'Cannot get metrics for Node id = '
-                                          f'{futures_for_node[future]["id"]}: {err}')
-                else:
-                    try:
-                        db.save_metrics_to_db(self.id, futures_for_node[future]['id'],
-                                              metrics['is_offline'], metrics['latency'])
-                    except Exception as err:
-                        self.notifier.send(f'Cannot save metrics to database - '
-                                           f'is MySQL container running? {err}', icon=MsgIcon.ERROR)
+                    self.notifier.send(f'Cannot save metrics to database - '
+                                       f'is MySQL container running? {err}', icon=MsgIcon.ERROR)
+            else:
+                self.notifier.send(f'Cannot ping {GOOD_IP} - is network ok? '
+                                   f'Skipping monitoring node {node["id"]}', icon=MsgIcon.ERROR)
 
     def get_reported_nodes(self, skale, nodes) -> list:
         """Returns a list of nodes to be reported."""
