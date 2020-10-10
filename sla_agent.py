@@ -36,7 +36,8 @@ from skale.skale_manager import spawn_skale_manager_lib
 from skale.transactions.result import TransactionError
 
 from configs import (GOOD_IP, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH,
-                     REPORT_PERIOD)
+                     REPORT_PERIOD, SENT_VERDICTS_FILEPATH, MONITORED_NODES_FILEPATH,
+                     MONITORED_NODES_COUNT)
 from tools import db
 from tools.helper import (MsgIcon, Notifier, call_retry,
                           check_if_node_is_registered, get_id_from_config,
@@ -44,9 +45,6 @@ from tools.helper import (MsgIcon, Notifier, call_retry,
 from tools.logger import init_agent_logger
 from tools.metrics import get_metrics_for_node, get_ping_node_results
 
-SENT_VERDICTS_FILEPATH = 'sent_verdicts.json'
-MONITORED_NODES_FILEPATH = 'monitored_nodes.json'
-MONITORED_NODES_COUNT = 24
 DISABLE_REPORTING = True
 
 
