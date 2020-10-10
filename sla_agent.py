@@ -73,17 +73,13 @@ class Monitor:
         self.skale = skale
 
         check_if_node_is_registered(self.skale, self.id)
-
         node_info = call_retry(self.skale.nodes.get, self.id)
         self.notifier = Notifier(node_info['name'], self.id, socket.inet_ntoa(node_info['ip']))
-        self.notifier.send('SLA agent started', icon=MsgIcon.INFO)
-
-        self.logger.info(f'Initialization of {self.agent_name} is completed. Node ID = {self.id}')
-
         self.nodes = []
         self.reward_period = call_retry.call(self.skale.constants_holder.get_reward_period)
-
         self.scheduler = BackgroundScheduler(timezone='UTC')
+        self.notifier.send('SLA agent started', icon=MsgIcon.INFO)
+        self.logger.info(f'Initialization of {self.agent_name} is completed. Node ID = {self.id}')
 
     def get_last_reward_date(self):
         node_info = call_retry(self.skale.nodes.get, self.id)
@@ -278,6 +274,7 @@ class Monitor:
             self.scheduler.add_job(self.report_job, 'interval', minutes=REPORT_PERIOD)
 
         self.scheduler.print_jobs()
+        self.monitor_job()
         self.scheduler.start()
 
         while True:
