@@ -35,9 +35,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from skale.skale_manager import spawn_skale_manager_lib
 from skale.transactions.result import TransactionError
 
-from configs import (GOOD_IP, LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH,
-                     REPORT_PERIOD, SENT_VERDICTS_FILEPATH, MONITORED_NODES_FILEPATH,
-                     MONITORED_NODES_COUNT)
+from configs import (GOOD_IP, LONG_LINE, MONITOR_PERIOD, MONITORED_NODES_COUNT,
+                     MONITORED_NODES_FILEPATH, NODE_CONFIG_FILEPATH,
+                     REPORT_PERIOD, SENT_VERDICTS_FILEPATH)
 from tools import db
 from tools.helper import (MsgIcon, Notifier, call_retry,
                           check_if_node_is_registered, get_id_from_config,
