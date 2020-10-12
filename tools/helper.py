@@ -27,7 +27,7 @@ import tenacity
 from skale import Skale
 from skale.wallets import RPCWallet
 
-from configs import NOTIFIER_URL, READ_CONFIG_PERIOD
+from configs import NOTIFIER_URL, CONFIG_CHECK_PERIOD
 from configs.web3 import ABI_FILEPATH, ENDPOINT
 from tools.exceptions import NodeNotFoundException
 
@@ -53,7 +53,7 @@ def check_if_node_is_registered(skale, node_id):
 
 
 @tenacity.retry(
-    wait=tenacity.wait_fixed(READ_CONFIG_PERIOD),
+    wait=tenacity.wait_fixed(CONFIG_CHECK_PERIOD),
     retry=tenacity.retry_if_exception_type(KeyError) | tenacity.retry_if_exception_type(
         FileNotFoundError))
 def get_id_from_config(node_config_filepath) -> int:
