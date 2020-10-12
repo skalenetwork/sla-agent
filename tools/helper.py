@@ -27,7 +27,7 @@ import tenacity
 from skale import Skale
 from skale.wallets import RPCWallet
 
-from configs import NOTIFIER_URL, CONFIG_CHECK_PERIOD
+from configs import CONFIG_CHECK_PERIOD, NOTIFIER_URL
 from configs.web3 import ABI_FILEPATH, ENDPOINT
 from tools.exceptions import NodeNotFoundException
 
