@@ -40,8 +40,8 @@ from configs import (GOOD_IP, LONG_LINE, MONITOR_PERIOD, MONITORED_NODES_COUNT,
                      REPORT_PERIOD, SENT_VERDICTS_FILEPATH)
 from tools import db
 from tools.helper import (MsgIcon, Notifier, call_retry,
-                          check_if_node_is_registered, get_id_from_config,
-                          init_skale)
+                          check_if_node_is_registered, get_agent_name,
+                          get_id_from_config, init_skale)
 from tools.logger import init_agent_logger
 from tools.metrics import get_metrics_for_node, get_ping_node_results
 
@@ -51,7 +51,7 @@ DISABLE_REPORTING = True
 class Monitor:
 
     def __init__(self, skale, node_id=None):
-        self.agent_name = self.__class__.__name__.lower()
+        self.agent_name = get_agent_name(self.__class__.__name__)
         init_agent_logger(self.agent_name, node_id)
         self.logger = logging.getLogger(self.agent_name)
 
@@ -72,12 +72,13 @@ class Monitor:
 
         check_if_node_is_registered(self.skale, self.id)
         node_info = call_retry(self.skale.nodes.get, self.id)
-        self.notifier = Notifier(node_info['name'], self.id, socket.inet_ntoa(node_info['ip']))
+        self.notifier = Notifier(self.agent_name, node_info['name'],
+                                 self.id, socket.inet_ntoa(node_info['ip']))
         self.nodes = []
         self.reward_period = call_retry.call(self.skale.constants_holder.get_reward_period)
         self.scheduler = BackgroundScheduler(timezone='UTC')
-        self.notifier.send('SLA agent started', icon=MsgIcon.INFO)
-        self.logger.info(f'Initialization of {self.agent_name} is completed. Node ID = {self.id}')
+        self.notifier.send(f'{self.agent_name} started successfully with a node ID = {self.id}',
+                           icon=MsgIcon.INFO)
 
     def get_last_reward_date(self):
         node_info = call_retry(self.skale.nodes.get, self.id)

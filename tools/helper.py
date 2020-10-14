@@ -20,6 +20,7 @@
 import json
 import logging
 import os
+import re
 from enum import Enum
 
 import requests
@@ -41,6 +42,11 @@ _config_first_read = True
 
 def init_skale():
     return Skale(ENDPOINT, ABI_FILEPATH, RPCWallet(os.environ['TM_URL']))
+
+
+def get_agent_name(name):
+    name_parts = re.findall('[A-Z][^A-Z]*', name)
+    return '-'.join(name_parts).lower()
 
 
 def check_if_node_is_registered(skale, node_id):
@@ -80,8 +86,8 @@ class MsgIcon(Enum):
 
 
 class Notifier:
-    def __init__(self, node_name, node_id, node_ip):
-        self.header = f'Container: sla-agent, Node: {node_name}, ' \
+    def __init__(self, cont_name, node_name, node_id, node_ip):
+        self.header = f'Container: {cont_name}, Node: {node_name}, ' \
                       f'ID: {node_id}, IP: {node_ip}\n'
 
     def send(self, message, icon=MsgIcon.ERROR):
@@ -92,8 +98,8 @@ class Notifier:
 
         try:
             response = requests.post(url=NOTIFIER_URL, json=message_data)
-        except requests.exceptions.ConnectionError as err:
-            logger.info(f'Could not connect to {NOTIFIER_URL}. {err}')
+        except requests.exceptions.ConnectionError:
+            logger.info(f'Cannot send Telegram notification (failed to connect to {NOTIFIER_URL})')
             return 1
         except Exception as err:
             logger.info(f'Cannot notify validator {NOTIFIER_URL}. {err}')
