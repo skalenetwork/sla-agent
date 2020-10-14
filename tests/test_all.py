@@ -40,7 +40,7 @@ def cur_node_id(skale):
 
 @pytest.fixture(scope="module")
 def monitor(skale, cur_node_id):
-    return sla.Monitor(skale, cur_node_id)
+    return sla.SlaAgent(skale, cur_node_id)
 
 
 def test_check_if_node_is_registered(skale, cur_node_id):

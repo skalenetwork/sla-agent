@@ -48,7 +48,7 @@ from tools.metrics import get_metrics_for_node, get_ping_node_results
 DISABLE_REPORTING = True
 
 
-class Monitor:
+class SlaAgent:
 
     def __init__(self, skale, node_id=None):
         self.agent_name = get_agent_name(self.__class__.__name__)
@@ -282,5 +282,5 @@ class Monitor:
 
 if __name__ == '__main__':
     skale = init_skale()
-    monitor = Monitor(skale)
+    monitor = SlaAgent(skale)
     monitor.run()
