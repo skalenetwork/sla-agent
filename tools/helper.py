@@ -20,6 +20,7 @@
 import json
 import logging
 import os
+import re
 from enum import Enum
 
 import requests
@@ -27,7 +28,7 @@ import tenacity
 from skale import Skale
 from skale.wallets import RPCWallet
 
-from configs import NOTIFIER_URL
+from configs import CONFIG_CHECK_PERIOD, NOTIFIER_URL
 from configs.web3 import ABI_FILEPATH, ENDPOINT
 from tools.exceptions import NodeNotFoundException
 
@@ -36,10 +37,16 @@ logger = logging.getLogger(__name__)
 call_retry = tenacity.Retrying(stop=tenacity.stop_after_attempt(10),
                                wait=tenacity.wait_fixed(2),
                                reraise=True)
+_config_first_read = True
 
 
 def init_skale():
     return Skale(ENDPOINT, ABI_FILEPATH, RPCWallet(os.environ['TM_URL']))
+
+
+def get_agent_name(name):
+    name_parts = re.findall('[A-Z][^A-Z]*', name)
+    return '-'.join(name_parts).lower()
 
 
 def check_if_node_is_registered(skale, node_id):
@@ -52,19 +59,22 @@ def check_if_node_is_registered(skale, node_id):
 
 
 @tenacity.retry(
-    wait=tenacity.wait_fixed(20),
+    wait=tenacity.wait_fixed(CONFIG_CHECK_PERIOD),
     retry=tenacity.retry_if_exception_type(KeyError) | tenacity.retry_if_exception_type(
         FileNotFoundError))
 def get_id_from_config(node_config_filepath) -> int:
     """Gets node ID from config file for agent initialization."""
+    global _config_first_read
     try:
         logger.debug('Reading node id from config file...')
         with open(node_config_filepath) as json_file:
             data = json.load(json_file)
         return data['node_id']
     except (FileNotFoundError, KeyError) as err:
-        logger.warning(
-            'Cannot read a node id from config file - is the node already registered?')
+        if _config_first_read:
+            logger.warning(
+                'Cannot read a node id from config file - is the node already registered?')
+            _config_first_read = False
         raise err
 
 
@@ -76,8 +86,8 @@ class MsgIcon(Enum):
 
 
 class Notifier:
-    def __init__(self, node_name, node_id, node_ip):
-        self.header = f'Container: sla-agent, Node: {node_name}, ' \
+    def __init__(self, cont_name, node_name, node_id, node_ip):
+        self.header = f'Container: {cont_name}, Node: {node_name}, ' \
                       f'ID: {node_id}, IP: {node_ip}\n'
 
     def send(self, message, icon=MsgIcon.ERROR):
@@ -88,8 +98,8 @@ class Notifier:
 
         try:
             response = requests.post(url=NOTIFIER_URL, json=message_data)
-        except requests.exceptions.ConnectionError as err:
-            logger.info(f'Could not connect to {NOTIFIER_URL}. {err}')
+        except requests.exceptions.ConnectionError:
+            logger.info(f'Cannot send Telegram notification (failed to connect to {NOTIFIER_URL})')
             return 1
         except Exception as err:
             logger.info(f'Cannot notify validator {NOTIFIER_URL}. {err}')

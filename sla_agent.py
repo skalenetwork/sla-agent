@@ -22,7 +22,7 @@ SLA agent runs on every node of SKALE network, periodically gets a list of nodes
 from SKALE Manager (SM), checks its health metrics and sends transactions with average metrics to SM
 when it's time to send it
 """
-import concurrent.futures
+# import concurrent.futures
 import json
 import logging
 import random
@@ -35,25 +35,23 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from skale.skale_manager import spawn_skale_manager_lib
 from skale.transactions.result import TransactionError
 
-from configs import (LONG_LINE, MONITOR_PERIOD, NODE_CONFIG_FILEPATH,
-                     REPORT_PERIOD)
+from configs import (GOOD_IP, LONG_LINE, MONITOR_PERIOD, MONITORED_NODES_COUNT,
+                     MONITORED_NODES_FILEPATH, NODE_CONFIG_FILEPATH,
+                     REPORT_PERIOD, SENT_VERDICTS_FILEPATH)
 from tools import db
 from tools.helper import (MsgIcon, Notifier, call_retry,
-                          check_if_node_is_registered, get_id_from_config,
-                          init_skale)
+                          check_if_node_is_registered, get_agent_name,
+                          get_id_from_config, init_skale)
 from tools.logger import init_agent_logger
-from tools.metrics import get_metrics_for_node
+from tools.metrics import get_metrics_for_node, get_ping_node_results
 
-SENT_VERDICTS_FILEPATH = 'sent_verdicts.json'
-MONITORED_NODES_FILEPATH = 'monitored_nodes.json'
-MONITORED_NODES_COUNT = 24
 DISABLE_REPORTING = True
 
 
-class Monitor:
+class SlaAgent:
 
     def __init__(self, skale, node_id=None):
-        self.agent_name = self.__class__.__name__.lower()
+        self.agent_name = get_agent_name(self.__class__.__name__)
         init_agent_logger(self.agent_name, node_id)
         self.logger = logging.getLogger(self.agent_name)
 
@@ -73,17 +71,14 @@ class Monitor:
         self.skale = skale
 
         check_if_node_is_registered(self.skale, self.id)
-
         node_info = call_retry(self.skale.nodes.get, self.id)
-        self.notifier = Notifier(node_info['name'], self.id, socket.inet_ntoa(node_info['ip']))
-        self.notifier.send('SLA agent started', icon=MsgIcon.INFO)
-
-        self.logger.info(f'Initialization of {self.agent_name} is completed. Node ID = {self.id}')
-
+        self.notifier = Notifier(self.agent_name, node_info['name'],
+                                 self.id, socket.inet_ntoa(node_info['ip']))
         self.nodes = []
         self.reward_period = call_retry.call(self.skale.constants_holder.get_reward_period)
-
         self.scheduler = BackgroundScheduler(timezone='UTC')
+        self.notifier.send(f'{self.agent_name} started successfully with a node ID = {self.id}',
+                           icon=MsgIcon.INFO)
 
     def get_last_reward_date(self):
         node_info = call_retry(self.skale.nodes.get, self.id)
@@ -126,7 +121,7 @@ class Monitor:
             self.save_monitored_array(monitored_array)
             return monitored_array
 
-    def validate_nodes(self, skale, nodes):
+    def check_nodes(self, skale, nodes):
         """Validate nodes and returns a list of nodes to be reported."""
         self.logger.info(LONG_LINE)
         if len(nodes) == 0:
@@ -135,31 +130,18 @@ class Monitor:
             self.logger.info(f'Number of nodes for monitoring: {len(nodes)}')
             self.logger.info(f'Nodes for monitoring : {nodes}')
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(nodes)),
-                                                   thread_name_prefix='MonThread') as executor:
-
-            futures_for_node = {
-                executor.submit(
-                    get_metrics_for_node,
-                    spawn_skale_manager_lib(skale), node,
-                    self.is_test_mode
-                ): node
-                for node in nodes
-            }
-
-            for future in futures_for_node:
+        for node in nodes:
+            if not get_ping_node_results(GOOD_IP)['is_offline']:
+                metrics = get_metrics_for_node(skale, node, self.is_test_mode)
                 try:
-                    metrics = future.result(timeout=55)
+                    db.save_metrics_to_db(self.id, node['id'],
+                                          metrics['is_offline'], metrics['latency'])
                 except Exception as err:
-                    self.logger.exception(f'Cannot get metrics for Node id = '
-                                          f'{futures_for_node[future]["id"]}: {err}')
-                else:
-                    try:
-                        db.save_metrics_to_db(self.id, futures_for_node[future]['id'],
-                                              metrics['is_offline'], metrics['latency'])
-                    except Exception as err:
-                        self.notifier.send(f'Cannot save metrics to database - '
-                                           f'is MySQL container running? {err}', icon=MsgIcon.ERROR)
+                    self.notifier.send(f'Cannot save metrics to database - '
+                                       f'is MySQL container running? {err}', icon=MsgIcon.ERROR)
+            else:
+                self.notifier.send(f'Cannot ping {GOOD_IP} - is network ok? '
+                                   f'Skipping monitoring node {node["id"]}', icon=MsgIcon.ERROR)
 
     def get_reported_nodes(self, skale, nodes) -> list:
         """Returns a list of nodes to be reported."""
@@ -246,7 +228,7 @@ class Monitor:
                                        icon=MsgIcon.ERROR)
                     self.logger.info('Monitoring nodes from previous job list')
 
-            self.validate_nodes(skale, self.nodes)
+            self.check_nodes(skale, self.nodes)
 
             self.logger.info(f'{threading.enumerate()}')
             self.logger.info('Monitor job finished.')
@@ -291,6 +273,7 @@ class Monitor:
             self.scheduler.add_job(self.report_job, 'interval', minutes=REPORT_PERIOD)
 
         self.scheduler.print_jobs()
+        self.monitor_job()
         self.scheduler.start()
 
         while True:
@@ -299,5 +282,5 @@ class Monitor:
 
 if __name__ == '__main__':
     skale = init_skale()
-    monitor = Monitor(skale)
+    monitor = SlaAgent(skale)
     monitor.run()

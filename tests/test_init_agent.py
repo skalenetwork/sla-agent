@@ -22,38 +22,38 @@ import json
 import pytest
 
 from configs import NODE_CONFIG_FILEPATH
-from sla_agent import Monitor
+from sla_agent import SlaAgent
 from tools.exceptions import NodeNotFoundException
 
 
 def test_init_agent_pos(skale):
     print("Test agent init with a given node id")
-    agent0 = Monitor(skale, 0)
+    agent0 = SlaAgent(skale, 0)
     assert agent0.id == 0
 
     print("Test agent init without given node id - read id from file")
     with open(NODE_CONFIG_FILEPATH, 'w') as json_file:
         json.dump({'node_id': 1}, json_file)
 
-    agent1 = Monitor(skale)
+    agent1 = SlaAgent(skale)
     assert agent1.id == 1
 
 
 def test_init_agent_neg(skale):
     print("Test agent init with a non-existing node id")
     with pytest.raises(NodeNotFoundException):
-        Monitor(skale, 100)
+        SlaAgent(skale, 100)
 
     print("Test agent init with a negative node id")
     with open(NODE_CONFIG_FILEPATH, 'w') as json_file:
         json.dump({'node_id': -1}, json_file)
 
     with pytest.raises(Exception):
-        Monitor(skale)
+        SlaAgent(skale)
 
     print("Test agent init with a non-integer node id")
     with open(NODE_CONFIG_FILEPATH, 'w') as json_file:
         json.dump({'node_id': 'one'}, json_file)
 
     with pytest.raises(Exception):
-        Monitor(skale)
+        SlaAgent(skale)

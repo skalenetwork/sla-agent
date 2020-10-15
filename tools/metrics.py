@@ -25,7 +25,7 @@ from skale.dataclasses.skaled_ports import SkaledPorts
 from skale.schain_config.ports_allocation import get_schain_base_port_on_node
 from web3 import HTTPProvider, Web3
 
-from configs import GOOD_IP, WATCHDOG_PORT, WATCHDOG_URL
+from configs import GOOD_IP, WATCHDOG_PORT, WATCHDOG_TIMEOUT, WATCHDOG_URL
 from tools.exceptions import NoInternetConnectionException
 
 logger = logging.getLogger(__name__)
@@ -98,7 +98,7 @@ def get_containers_healthcheck(host):
     """Return 0 if OK or 1 if failed."""
     url = get_containers_healthcheck_url(host)
     try:
-        response = requests.get(url, timeout=20)
+        response = requests.get(url, timeout=WATCHDOG_TIMEOUT)
     except requests.exceptions.ConnectionError as err:
         logger.info(f'Could not connect to {url}')
         logger.error(err)
