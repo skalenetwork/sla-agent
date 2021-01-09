@@ -4,5 +4,5 @@ pingparsing==1.1.0
 schedule==0.6.0
 tenacity==6.2.0
 peewee==3.13.3
-PyMySQL==0.10.1
+PyMySQL==1.0.1
 apscheduler==3.6.3
