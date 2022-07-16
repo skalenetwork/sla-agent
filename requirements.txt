@@ -3,6 +3,6 @@ docker==4.3.1
 pingparsing==1.1.0
 schedule==0.6.0
 tenacity==6.2.0
-peewee==3.13.3
+peewee==3.15.1
 PyMySQL==0.10.1
 apscheduler==3.6.3
